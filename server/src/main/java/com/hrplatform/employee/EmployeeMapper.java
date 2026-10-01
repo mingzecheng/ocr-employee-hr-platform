@@ -15,4 +15,8 @@ public interface EmployeeMapper {
     );
 
     Employee insert(Employee employee);
+
+    int updateStatusAndOrganization(EmployeeMutation mutation);
+
+    int insertStatusHistory(EmployeeStatusHistory history);
 }

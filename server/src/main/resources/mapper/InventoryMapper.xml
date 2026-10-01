@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hrplatform.inventory.InventoryMapper">
+    <insert id="insertTask" parameterType="com.hrplatform.inventory.InventoryTask"
+            useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO inventory_task (task_no, initiator_id, status) VALUES (#{taskNo}, #{initiatorId}, #{status})
+    </insert>
+    <insert id="insertItem" parameterType="com.hrplatform.inventory.InventoryItem"
+            useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO inventory_item
+            (task_id, archive_version_id, employee_id, department_id, actual_version_id, actual_status,
+             difference_type, difference_description, checked_by)
+        VALUES (#{taskId}, #{expectedVersionId}, #{employeeId}, #{departmentId}, #{actualVersionId}, #{actualStatus},
+                #{differenceType}, #{differenceDescription}, #{checkedBy})
+    </insert>
+    <select id="findTask" resultType="com.hrplatform.inventory.InventoryTask">
+        SELECT t.id, t.task_no, t.status, t.initiator_id
+        FROM inventory_task t WHERE t.id = #{id}
+        <choose><when test="scopeType == 'ALL'">AND 1 = 1</when><otherwise>AND t.initiator_id = #{departmentId}</otherwise></choose>
+    </select>
+    <select id="listItems" resultType="com.hrplatform.inventory.InventoryItem">
+        SELECT id, task_id, archive_version_id AS expected_version_id, actual_version_id, employee_id,
+               department_id, actual_status, difference_type, difference_description, checked_by
+        FROM inventory_item WHERE task_id = #{taskId} ORDER BY id
+    </select>
+    <update id="updateTask" parameterType="com.hrplatform.inventory.InventoryTask">
+        UPDATE inventory_task SET status = #{status} WHERE id = #{id}
+    </update>
+    <update id="updateItem" parameterType="com.hrplatform.inventory.InventoryItem">
+        UPDATE inventory_item SET actual_version_id = #{actualVersionId}, actual_status = #{actualStatus},
+            difference_type = #{differenceType}, difference_description = #{differenceDescription}, checked_by = #{checkedBy},
+            checked_at = CURRENT_TIMESTAMP WHERE id = #{id}
+    </update>
+</mapper>

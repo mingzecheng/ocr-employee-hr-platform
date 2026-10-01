@@ -35,4 +35,24 @@
         INSERT INTO employee (employee_no, name, phone, department_id, position_id, status, hire_date)
         VALUES (#{employeeNo}, #{name}, #{phone}, #{departmentId}, #{positionId}, #{status}, #{hireDate})
     </insert>
+
+    <update id="updateStatusAndOrganization" parameterType="com.hrplatform.employee.EmployeeMutation">
+        UPDATE employee
+        SET department_id = COALESCE(#{departmentId}, department_id),
+            position_id = COALESCE(#{positionId}, position_id),
+            status = #{status},
+            hire_date = COALESCE(#{hireDate}, hire_date),
+            leave_date = #{leaveDate}
+        WHERE id = #{id}
+    </update>
+
+    <insert id="insertStatusHistory" parameterType="com.hrplatform.employee.EmployeeStatusHistory">
+        INSERT INTO employee_status_history (
+            employee_id, before_status, after_status, before_department_id, after_department_id,
+            before_position_id, after_position_id, source_request_id, operator_id, created_at
+        ) VALUES (
+            #{employeeId}, #{beforeStatus}, #{afterStatus}, #{beforeDepartmentId}, #{afterDepartmentId},
+            #{beforePositionId}, #{afterPositionId}, #{sourceRequestId}, #{operatorId}, #{createdAt}
+        )
+    </insert>
 </mapper>

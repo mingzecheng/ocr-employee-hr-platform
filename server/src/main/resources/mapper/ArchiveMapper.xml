@@ -76,7 +76,7 @@
 
     <select id="findOcrSourceByVersionIdWithScope" resultType="com.hrplatform.archive.ArchiveOcrSource">
         SELECT v.id AS version_id, f.object_key, v.original_name, v.content_type, v.byte_size,
-               v.sha256, d.document_type
+               v.sha256, d.document_type, e.id AS employee_id, e.department_id
         FROM archive_version v
         JOIN archive_document d ON d.id = v.document_id
         JOIN file_object f ON f.id = v.file_object_id

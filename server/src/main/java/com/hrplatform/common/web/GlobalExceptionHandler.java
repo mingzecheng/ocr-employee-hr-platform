@@ -12,6 +12,9 @@ import com.hrplatform.archive.InvalidArchiveFileException;
 import com.hrplatform.ocr.OcrBindingNotFoundException;
 import com.hrplatform.ocr.OcrFieldNotFoundException;
 import com.hrplatform.ocr.OcrPreviewMissingException;
+import com.hrplatform.workflow.RequestStateException;
+import com.hrplatform.access.ArchiveAccessStateException;
+import com.hrplatform.inventory.InventoryStateException;
 
 import java.util.stream.Collectors;
 
@@ -48,6 +51,18 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> invalidArchive(InvalidArchiveFileException exception,
                                                             HttpServletRequest request) {
         return ResponseEntity.badRequest().body(ApiResponse.failure("VALIDATION_ERROR", exception.getMessage(), traceId(request)));
+    }
+
+    @ExceptionHandler(RequestStateException.class)
+    public ResponseEntity<ApiResponse<Void>> requestState(RequestStateException exception, HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponse.failure("STATE_CONFLICT", exception.getMessage(), traceId(request)));
+    }
+
+    @ExceptionHandler({ArchiveAccessStateException.class, InventoryStateException.class})
+    public ResponseEntity<ApiResponse<Void>> resourceState(RuntimeException exception, HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponse.failure("STATE_CONFLICT", exception.getMessage(), traceId(request)));
     }
 
     @ExceptionHandler(Exception.class)

@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hrplatform.workflow.RequestMapper">
+    <resultMap id="RequestMap" type="com.hrplatform.workflow.HrRequest">
+        <constructor>
+            <idArg column="id" javaType="java.lang.Long"/>
+            <arg column="request_no" javaType="java.lang.String"/>
+            <arg column="request_type" javaType="java.lang.String"/>
+            <arg column="employee_id" javaType="java.lang.Long"/>
+            <arg column="target_department_id" javaType="java.lang.Long"/>
+            <arg column="target_position_id" javaType="java.lang.Long"/>
+            <arg column="applicant_id" javaType="java.lang.Long"/>
+            <arg column="source_version_id" javaType="java.lang.Long"/>
+            <arg column="payload_json" javaType="java.lang.String"/>
+            <arg column="status" javaType="java.lang.String"/>
+            <arg column="current_node" javaType="java.lang.String"/>
+            <arg column="version_no" javaType="int"/>
+            <arg column="created_at" javaType="java.time.LocalDateTime"/>
+            <arg column="submitted_at" javaType="java.time.LocalDateTime"/>
+            <arg column="completed_at" javaType="java.time.LocalDateTime"/>
+        </constructor>
+    </resultMap>
+
+    <resultMap id="ApprovalMap" type="com.hrplatform.workflow.ApprovalRecord">
+        <constructor>
+            <idArg column="id" javaType="java.lang.Long"/>
+            <arg column="request_id" javaType="java.lang.Long"/>
+            <arg column="node_code" javaType="java.lang.String"/>
+            <arg column="approver_id" javaType="java.lang.Long"/>
+            <arg column="decision" javaType="java.lang.String"/>
+            <arg column="comment" javaType="java.lang.String"/>
+            <arg column="decided_at" javaType="java.time.LocalDateTime"/>
+        </constructor>
+    </resultMap>
+
+    <sql id="columns">
+        r.id, r.request_no, r.request_type, r.employee_id, r.target_department_id,
+        r.target_position_id, r.applicant_id, r.source_version_id, r.payload_json,
+        r.status, r.current_node, r.version_no, r.created_at, r.submitted_at, r.completed_at
+    </sql>
+
+    <select id="findByIdWithScope" resultMap="RequestMap">
+        SELECT <include refid="columns"/>
+        FROM hr_request r JOIN employee e ON e.id = r.employee_id
+        WHERE r.id = #{id}
+        <choose>
+            <when test="scopeType == 'ALL'">AND 1 = 1</when>
+            <when test="scopeType == 'DEPARTMENT'">AND e.department_id = #{departmentId}</when>
+            <when test="scopeType == 'EMPLOYEE'">AND e.id = #{employeeId}</when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+        LIMIT 1
+    </select>
+
+    <select id="list" resultMap="RequestMap">
+        SELECT <include refid="columns"/>
+        FROM hr_request r JOIN employee e ON e.id = r.employee_id
+        WHERE 1 = 1
+        <if test="requestType != null and requestType != ''">AND r.request_type = #{requestType}</if>
+        <if test="status != null and status != ''">AND r.status = #{status}</if>
+        <if test="employeeId != null">AND r.employee_id = #{employeeId}</if>
+        <if test="departmentId != null">AND e.department_id = #{departmentId}</if>
+        <choose>
+            <when test="scopeType == 'ALL'">AND 1 = 1</when>
+            <when test="scopeType == 'DEPARTMENT'">AND e.department_id = #{departmentId}</when>
+            <when test="scopeType == 'EMPLOYEE'">AND e.id = #{employeeId}</when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+        ORDER BY r.created_at DESC, r.id DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="count" resultType="long">
+        SELECT COUNT(*) FROM hr_request r JOIN employee e ON e.id = r.employee_id
+        WHERE 1 = 1
+        <if test="requestType != null and requestType != ''">AND r.request_type = #{requestType}</if>
+        <if test="status != null and status != ''">AND r.status = #{status}</if>
+        <if test="employeeId != null">AND r.employee_id = #{employeeId}</if>
+        <if test="departmentId != null">AND e.department_id = #{departmentId}</if>
+        <choose>
+            <when test="scopeType == 'ALL'">AND 1 = 1</when>
+            <when test="scopeType == 'DEPARTMENT'">AND e.department_id = #{departmentId}</when>
+            <when test="scopeType == 'EMPLOYEE'">AND e.id = #{employeeId}</when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+    </select>
+
+    <insert id="insert" parameterType="com.hrplatform.workflow.HrRequest"
+            useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO hr_request (
+            request_no, request_type, employee_id, target_department_id, target_position_id,
+            applicant_id, source_version_id, payload_json, status, current_node, version_no,
+            submitted_at, completed_at, created_at
+        ) VALUES (
+            #{requestNo}, #{requestType}, #{employeeId}, #{targetDepartmentId}, #{targetPositionId},
+            #{applicantId}, #{sourceVersionId}, #{payloadJson}, #{status}, #{currentNode}, #{versionNo},
+            #{submittedAt}, #{completedAt}, #{createdAt}
+        )
+    </insert>
+
+    <update id="updateState" parameterType="com.hrplatform.workflow.HrRequest">
+        UPDATE hr_request
+        SET status = #{status}, current_node = #{currentNode}, version_no = #{versionNo},
+            submitted_at = #{submittedAt}, completed_at = #{completedAt}
+        WHERE id = #{id} AND version_no = #{versionNo} - 1
+    </update>
+
+    <insert id="insertApproval" parameterType="com.hrplatform.workflow.ApprovalRecord"
+            useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO approval_record (request_id, node_code, approver_id, decision, comment, decided_at)
+        VALUES (#{requestId}, #{nodeCode}, #{approverId}, #{decision}, #{comment}, #{decidedAt})
+    </insert>
+</mapper>
