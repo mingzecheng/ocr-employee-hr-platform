@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hrplatform.ocr.OcrBindingMapper">
+    <resultMap id="BindingMap" type="com.hrplatform.ocr.OcrBinding">
+        <constructor>
+            <idArg column="id" javaType="java.lang.Long"/>
+            <arg column="version_id" javaType="java.lang.Long"/>
+            <arg column="task_id" javaType="java.lang.String"/>
+            <arg column="status" javaType="java.lang.String"/>
+            <arg column="engine_version" javaType="java.lang.String"/>
+            <arg column="processing_duration_ms" javaType="long"/>
+            <arg column="review_required" javaType="boolean"/>
+            <arg column="error_code" javaType="java.lang.String"/>
+            <arg column="created_at" javaType="java.time.LocalDateTime"/>
+            <arg column="document_type" javaType="java.lang.String"/>
+            <arg column="preview_url" javaType="java.lang.String"/>
+            <arg column="preview_content_type" javaType="java.lang.String"/>
+            <arg column="preview_size" javaType="java.lang.Long"/>
+            <arg column="preview_sha256" javaType="java.lang.String"/>
+            <arg column="preview_width" javaType="java.lang.Integer"/>
+            <arg column="preview_height" javaType="java.lang.Integer"/>
+            <arg column="error_message" javaType="java.lang.String"/>
+            <arg column="updated_at" javaType="java.time.LocalDateTime"/>
+        </constructor>
+    </resultMap>
+
+    <resultMap id="RevisionMap" type="com.hrplatform.ocr.OcrFieldRevision">
+        <constructor>
+            <idArg column="id" javaType="java.lang.Long"/>
+            <arg column="binding_id" javaType="java.lang.Long"/>
+            <arg column="field_code" javaType="java.lang.String"/>
+            <arg column="previous_value" javaType="java.lang.String"/>
+            <arg column="current_value" javaType="java.lang.String"/>
+            <arg column="reason" javaType="java.lang.String"/>
+            <arg column="operator_id" javaType="java.lang.Long"/>
+            <arg column="created_at" javaType="java.time.LocalDateTime"/>
+        </constructor>
+    </resultMap>
+
+    <sql id="bindingColumns">
+        b.id, b.archive_version_id AS version_id, b.task_id, b.status, b.engine_version,
+        b.processing_duration_ms, b.review_required, b.error_code, b.created_at,
+        b.document_type, b.preview_url, b.preview_content_type, b.preview_size,
+        b.preview_sha256, b.preview_width, b.preview_height, b.error_message, b.updated_at
+    </sql>
+
+    <select id="findByVersionId" resultMap="BindingMap">
+        SELECT <include refid="bindingColumns"/> FROM ocr_binding b
+        WHERE b.archive_version_id = #{versionId} LIMIT 1
+    </select>
+
+    <select id="findByVersionIdWithScope" resultMap="BindingMap">
+        SELECT <include refid="bindingColumns"/>
+        FROM ocr_binding b
+        JOIN archive_version v ON v.id = b.archive_version_id
+        JOIN archive_document d ON d.id = v.document_id
+        JOIN employee e ON e.id = d.employee_id
+        WHERE b.archive_version_id = #{versionId}
+        <include refid="scopePredicate"/>
+        LIMIT 1
+    </select>
+
+    <select id="findByIdWithScope" resultMap="BindingMap">
+        SELECT <include refid="bindingColumns"/>
+        FROM ocr_binding b
+        JOIN archive_version v ON v.id = b.archive_version_id
+        JOIN archive_document d ON d.id = v.document_id
+        JOIN employee e ON e.id = d.employee_id
+        WHERE b.id = #{id}
+        <include refid="scopePredicate"/>
+        LIMIT 1
+    </select>
+
+    <sql id="scopePredicate">
+        <choose>
+            <when test="scopeType == 'ALL'">AND 1 = 1</when>
+            <when test="scopeType == 'DEPARTMENT'">AND e.department_id = #{departmentId}</when>
+            <when test="scopeType == 'EMPLOYEE'">AND e.id = #{employeeId}</when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+    </sql>
+
+    <insert id="insert" parameterType="com.hrplatform.ocr.OcrBinding"
+            useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO ocr_binding (
+            archive_version_id, task_id, document_type, status, engine_version,
+            processing_duration_ms, review_required, error_code, error_message,
+            preview_url, preview_content_type, preview_size, preview_sha256,
+            preview_width, preview_height, created_at, updated_at
+        ) VALUES (
+            #{versionId}, #{taskId}, #{documentType}, #{status}, #{engineVersion},
+            #{processingDurationMs}, #{reviewRequired}, #{errorCode}, #{errorMessage},
+            #{previewUrl}, #{previewContentType}, #{previewSize}, #{previewSha256},
+            #{previewWidth}, #{previewHeight}, #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <insert id="insertRevision" parameterType="com.hrplatform.ocr.OcrFieldRevision"
+            useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO ocr_field_revision
+            (binding_id, field_code, previous_value, current_value, reason, operator_id, created_at)
+        VALUES (#{bindingId}, #{fieldCode}, #{previousValue}, #{currentValue}, #{reason}, #{operatorId}, #{createdAt})
+    </insert>
+
+    <select id="listRevisions" resultMap="RevisionMap">
+        SELECT id, binding_id, field_code, previous_value, current_value, reason, operator_id, created_at
+        FROM ocr_field_revision
+        WHERE binding_id = #{bindingId}
+        ORDER BY created_at ASC, id ASC
+    </select>
+</mapper>

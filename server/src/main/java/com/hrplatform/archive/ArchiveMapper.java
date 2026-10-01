@@ -23,4 +23,9 @@ public interface ArchiveMapper {
                                              @Param("scopeType") String scopeType);
 
     String findObjectKeyByVersionId(@Param("versionId") Long versionId);
+
+    ArchiveOcrSource findOcrSourceByVersionIdWithScope(@Param("versionId") Long versionId,
+                                                        @Param("employeeId") Long employeeId,
+                                                        @Param("departmentId") Long departmentId,
+                                                        @Param("scopeType") String scopeType);
 }

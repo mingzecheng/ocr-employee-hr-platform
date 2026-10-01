@@ -7,6 +7,11 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import com.hrplatform.auth.InvalidCredentialsException;
+import com.hrplatform.employee.DataScopeDeniedException;
+import com.hrplatform.archive.InvalidArchiveFileException;
+import com.hrplatform.ocr.OcrBindingNotFoundException;
+import com.hrplatform.ocr.OcrFieldNotFoundException;
+import com.hrplatform.ocr.OcrPreviewMissingException;
 
 import java.util.stream.Collectors;
 
@@ -29,6 +34,20 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> invalidCredentials(InvalidCredentialsException exception, HttpServletRequest request) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(ApiResponse.failure("UNAUTHORIZED", exception.getMessage(), traceId(request)));
+    }
+
+    @ExceptionHandler({DataScopeDeniedException.class, OcrBindingNotFoundException.class,
+            OcrFieldNotFoundException.class, OcrPreviewMissingException.class})
+    public ResponseEntity<ApiResponse<Void>> notFoundOrDenied(RuntimeException exception, HttpServletRequest request) {
+        String code = exception instanceof DataScopeDeniedException ? "FORBIDDEN" : "NOT_FOUND";
+        HttpStatus status = exception instanceof DataScopeDeniedException ? HttpStatus.FORBIDDEN : HttpStatus.NOT_FOUND;
+        return ResponseEntity.status(status).body(ApiResponse.failure(code, exception.getMessage(), traceId(request)));
+    }
+
+    @ExceptionHandler(InvalidArchiveFileException.class)
+    public ResponseEntity<ApiResponse<Void>> invalidArchive(InvalidArchiveFileException exception,
+                                                            HttpServletRequest request) {
+        return ResponseEntity.badRequest().body(ApiResponse.failure("VALIDATION_ERROR", exception.getMessage(), traceId(request)));
     }
 
     @ExceptionHandler(Exception.class)
