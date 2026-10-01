@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hrplatform.workflow.request.RequestMapper">
+    <resultMap id="requestMap" type="com.hrplatform.workflow.request.HrRequest">
+        <id property="id" column="id"/>
+        <result property="requestNo" column="request_no"/>
+        <result property="requestType" column="request_type"/>
+        <result property="employeeId" column="employee_id"/>
+        <result property="targetDepartmentId" column="target_department_id"/>
+        <result property="applicantId" column="applicant_id"/>
+        <result property="payloadJson" column="payload_json"/>
+        <result property="status" column="status"/>
+        <result property="currentNode" column="current_node"/>
+        <result property="submittedAt" column="submitted_at"/>
+        <result property="completedAt" column="completed_at"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO hr_request (
+            request_no, request_type, employee_id, target_department_id, applicant_id, payload_json, status, current_node
+        ) VALUES (
+            #{requestNo}, #{requestType}, #{employeeId}, #{targetDepartmentId}, #{applicantId}, #{payloadJson}, #{status}, #{currentNode}
+        )
+    </insert>
+
+    <select id="findById" resultMap="requestMap">
+        SELECT id, request_no, request_type, employee_id, target_department_id, applicant_id, payload_json,
+               status, current_node, submitted_at, completed_at, created_at, updated_at
+        FROM hr_request
+        WHERE id = #{id}
+          AND (
+            #{scopeType} = 'ALL'
+            OR (#{scopeType} = 'DEPARTMENT' AND target_department_id = #{departmentId})
+            OR (#{scopeType} = 'EMPLOYEE' AND employee_id = #{employeeId})
+          )
+    </select>
+
+    <update id="updateState">
+        UPDATE hr_request
+        SET status = #{status}, current_node = #{currentNode}, submitted_at = #{submittedAt},
+            completed_at = #{completedAt}
+        WHERE id = #{id}
+    </update>
+
+    <insert id="insertApproval" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO approval_record (
+            request_id, node_code, approver_id, decision, comment, decided_at
+        ) VALUES (
+            #{requestId}, #{nodeCode}, #{approverId}, #{decision}, #{comment}, #{decidedAt}
+        )
+    </insert>
+
+    <insert id="insertAudit" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO audit_log (
+            actor_user_id, action_code, resource_type, resource_id, detail_json
+        ) VALUES (
+            #{actorUserId}, #{actionCode}, #{resourceType}, #{resourceId}, #{detailJson}
+        )
+    </insert>
+</mapper>

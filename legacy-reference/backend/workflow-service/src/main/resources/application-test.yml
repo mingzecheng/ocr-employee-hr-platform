@@ -1,0 +1,23 @@
+spring:
+  config:
+    activate:
+      on-profile: test
+  flyway:
+    clean-disabled: false
+
+app:
+  datasource:
+    write:
+      url: ${MYSQL_WRITE_URL:jdbc:mysql://127.0.0.1:13306/workflow_db?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai}
+      username: ${MYSQL_USERNAME:hr}
+      password: ${MYSQL_PASSWORD:change-me-application-password}
+    read:
+      url: ${MYSQL_READ_URL:jdbc:mysql://127.0.0.1:13307/workflow_db?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai}
+      username: ${MYSQL_USERNAME:hr}
+      password: ${MYSQL_PASSWORD:change-me-application-password}
+
+workflow:
+  archive-service-url: ${ARCHIVE_SERVICE_URL:http://127.0.0.1:18082}
+  todo:
+    archive-connect-timeout: ${WORKFLOW_TODO_ARCHIVE_CONNECT_TIMEOUT:2s}
+    archive-read-timeout: ${WORKFLOW_TODO_ARCHIVE_READ_TIMEOUT:5s}

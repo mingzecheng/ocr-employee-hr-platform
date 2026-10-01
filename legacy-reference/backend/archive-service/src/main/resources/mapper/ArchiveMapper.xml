@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hrplatform.archive.document.ArchiveMapper">
+    <resultMap id="fileObjectMap" type="com.hrplatform.archive.document.FileObject">
+        <id property="id" column="file_id"/>
+        <result property="objectKey" column="object_key"/>
+        <result property="originalName" column="original_name"/>
+        <result property="contentType" column="content_type"/>
+        <result property="sizeBytes" column="size_bytes"/>
+        <result property="sha256" column="sha256"/>
+        <result property="storageProvider" column="storage_provider"/>
+        <result property="createdAt" column="file_created_at"/>
+    </resultMap>
+
+    <resultMap id="versionMap" type="com.hrplatform.archive.document.ArchiveVersion">
+        <id property="id" column="version_id"/>
+        <result property="documentId" column="document_id"/>
+        <result property="versionNo" column="version_no"/>
+        <result property="fileObjectId" column="file_object_id"/>
+        <result property="status" column="version_status"/>
+        <result property="createdBy" column="created_by"/>
+        <result property="createdAt" column="version_created_at"/>
+        <association property="fileObject" resultMap="fileObjectMap"/>
+    </resultMap>
+
+    <insert id="insertArchiveRecord">
+        INSERT INTO archive_record (employee_id, status) VALUES (#{employeeId}, 'ACTIVE')
+    </insert>
+
+    <select id="findArchiveRecordIdByEmployeeId" resultType="long">
+        SELECT id FROM archive_record WHERE employee_id = #{employeeId} AND status = 'ACTIVE'
+    </select>
+
+    <insert id="insertFileObject" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO file_object (object_key, original_name, content_type, size_bytes, sha256, storage_provider)
+        VALUES (#{objectKey}, #{originalName}, #{contentType}, #{sizeBytes}, #{sha256}, #{storageProvider})
+    </insert>
+
+    <insert id="insertDocument" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO archive_document (archive_record_id, document_type, title, status)
+        VALUES (#{archiveRecordId}, #{documentType}, #{title}, 'ACTIVE')
+    </insert>
+
+    <insert id="insertVersion" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO archive_version (document_id, version_no, file_object_id, status, created_by)
+        VALUES (#{documentId}, #{versionNo}, #{fileObjectId}, #{status}, #{createdBy})
+    </insert>
+
+    <select id="findVersionByIdInScope" resultMap="versionMap">
+        SELECT v.id AS version_id, v.document_id, v.version_no, v.file_object_id,
+               v.status AS version_status, v.created_by, v.created_at AS version_created_at,
+               f.id AS file_id, f.object_key, f.original_name, f.content_type, f.size_bytes,
+               f.sha256, f.storage_provider, f.created_at AS file_created_at
+        FROM archive_version v
+        JOIN file_object f ON f.id = v.file_object_id
+        JOIN archive_document d ON d.id = v.document_id AND d.status = 'ACTIVE'
+        JOIN archive_record ar ON ar.id = d.archive_record_id AND ar.status = 'ACTIVE'
+        JOIN employee e ON e.id = ar.employee_id AND e.status = 'ACTIVE'
+        WHERE v.id = #{id}
+        <choose>
+            <when test="scopeType == 'ALL'">AND 1 = 1</when>
+            <when test="scopeType == 'DEPARTMENT'">AND e.department_id = #{departmentId}</when>
+            <when test="scopeType == 'EMPLOYEE'">AND e.id = #{employeeId}</when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+    </select>
+
+    <resultMap id="resourceAuthorizationMap" type="com.hrplatform.archive.api.ArchiveDtos$ResourceAuthorizationData">
+        <constructor>
+            <idArg column="employee_id" javaType="java.lang.Long"/>
+            <arg column="department_id" javaType="java.lang.Long"/>
+            <arg column="document_id" javaType="java.lang.Long"/>
+        </constructor>
+    </resultMap>
+
+    <select id="findVersionAuthorizationInScope" resultMap="resourceAuthorizationMap">
+        SELECT ar.employee_id, e.department_id, v.document_id
+        FROM archive_version v
+        JOIN archive_document d ON d.id = v.document_id AND d.status = 'ACTIVE'
+        JOIN archive_record ar ON ar.id = d.archive_record_id AND ar.status = 'ACTIVE'
+        JOIN employee e ON e.id = ar.employee_id AND e.status = 'ACTIVE'
+        WHERE v.id = #{id}
+        <choose>
+            <when test="scopeType == 'ALL'">AND 1 = 1</when>
+            <when test="scopeType == 'DEPARTMENT'">AND e.department_id = #{departmentId}</when>
+            <when test="scopeType == 'EMPLOYEE'">AND e.id = #{employeeId}</when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+    </select>
+
+    <select id="findDocumentAuthorizationInScope" resultMap="resourceAuthorizationMap">
+        SELECT ar.employee_id, e.department_id, d.id AS document_id
+        FROM archive_document d
+        JOIN archive_record ar ON ar.id = d.archive_record_id AND ar.status = 'ACTIVE'
+        JOIN employee e ON e.id = ar.employee_id AND e.status = 'ACTIVE'
+        WHERE d.id = #{id} AND d.status = 'ACTIVE'
+        <choose>
+            <when test="scopeType == 'ALL'">AND 1 = 1</when>
+            <when test="scopeType == 'DEPARTMENT'">AND e.department_id = #{departmentId}</when>
+            <when test="scopeType == 'EMPLOYEE'">AND e.id = #{employeeId}</when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+    </select>
+
+    <resultMap id="documentDataMap" type="com.hrplatform.archive.api.ArchiveDtos$DocumentData">
+        <constructor>
+            <idArg column="document_id" javaType="java.lang.Long"/>
+            <arg column="employee_id" javaType="java.lang.Long"/>
+            <arg column="document_type" javaType="java.lang.String"/>
+            <arg column="title" javaType="java.lang.String"/>
+            <arg column="document_status" javaType="java.lang.String"/>
+            <arg column="latest_version_id" javaType="java.lang.Long"/>
+            <arg column="latest_version_no" javaType="java.lang.Integer"/>
+            <arg column="latest_file_name" javaType="java.lang.String"/>
+            <arg column="latest_content_type" javaType="java.lang.String"/>
+            <arg column="latest_size" javaType="java.lang.Long"/>
+            <arg column="document_created_at" javaType="java.time.LocalDateTime"/>
+        </constructor>
+    </resultMap>
+
+    <select id="listDocumentsByEmployeeInScope" resultMap="documentDataMap">
+        SELECT d.id AS document_id, ar.employee_id, d.document_type, d.title,
+               d.status AS document_status, v.id AS latest_version_id, v.version_no AS latest_version_no,
+               f.original_name AS latest_file_name, f.content_type AS latest_content_type,
+               f.size_bytes AS latest_size, d.created_at AS document_created_at
+        FROM archive_document d
+        JOIN archive_record ar ON ar.id = d.archive_record_id AND ar.status = 'ACTIVE'
+        JOIN employee e ON e.id = ar.employee_id AND e.status = 'ACTIVE'
+        LEFT JOIN archive_version v ON v.id = (
+            SELECT newest.id
+            FROM archive_version newest
+            WHERE newest.document_id = d.id
+            ORDER BY newest.version_no DESC, newest.id DESC
+            LIMIT 1
+        )
+        LEFT JOIN file_object f ON f.id = v.file_object_id
+        WHERE d.status = 'ACTIVE' AND ar.employee_id = #{employeeId}
+        <choose>
+            <when test="scopeType == 'ALL'">AND 1 = 1</when>
+            <when test="scopeType == 'DEPARTMENT'">AND e.department_id = #{departmentId}</when>
+            <when test="scopeType == 'EMPLOYEE'">AND e.id = #{scopeEmployeeId}</when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+        ORDER BY d.id DESC
+    </select>
+
+    <resultMap id="versionDataMap" type="com.hrplatform.archive.api.ArchiveDtos$VersionData">
+        <constructor>
+            <idArg column="version_id" javaType="java.lang.Long"/>
+            <arg column="document_id" javaType="java.lang.Long"/>
+            <arg column="version_no" javaType="int"/>
+            <arg column="version_status" javaType="java.lang.String"/>
+            <arg column="original_name" javaType="java.lang.String"/>
+            <arg column="content_type" javaType="java.lang.String"/>
+            <arg column="size_bytes" javaType="long"/>
+            <arg column="sha256" javaType="java.lang.String"/>
+            <arg column="created_by" javaType="java.lang.Long"/>
+            <arg column="version_created_at" javaType="java.time.LocalDateTime"/>
+        </constructor>
+    </resultMap>
+
+    <select id="listVersionsByDocumentInScope" resultMap="versionDataMap">
+        SELECT v.id AS version_id, v.document_id, v.version_no,
+               v.status AS version_status, f.original_name, f.content_type, f.size_bytes,
+               f.sha256, v.created_by, v.created_at AS version_created_at
+        FROM archive_version v
+        JOIN file_object f ON f.id = v.file_object_id
+        JOIN archive_document d ON d.id = v.document_id AND d.status = 'ACTIVE'
+        JOIN archive_record ar ON ar.id = d.archive_record_id AND ar.status = 'ACTIVE'
+        JOIN employee e ON e.id = ar.employee_id AND e.status = 'ACTIVE'
+        WHERE v.document_id = #{documentId}
+        <choose>
+            <when test="scopeType == 'ALL'">AND 1 = 1</when>
+            <when test="scopeType == 'DEPARTMENT'">AND e.department_id = #{departmentId}</when>
+            <when test="scopeType == 'EMPLOYEE'">AND e.id = #{scopeEmployeeId}</when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+        ORDER BY v.version_no DESC, v.id DESC
+    </select>
+</mapper>

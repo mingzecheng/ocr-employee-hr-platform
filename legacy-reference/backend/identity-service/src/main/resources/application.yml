@@ -1,0 +1,52 @@
+spring:
+  application:
+    name: identity-service
+  profiles:
+    default: local
+  flyway:
+    enabled: true
+  datasource:
+    hikari:
+      pool-name: identity-routing
+  main:
+    allow-bean-definition-overriding: false
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      timeout: ${REDIS_TIMEOUT:2s}
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+
+server:
+  port: ${IDENTITY_PORT:8081}
+
+mybatis:
+  mapper-locations: classpath:/mapper/*.xml
+
+security:
+  jwt:
+    secret: ${SECURITY_JWT_SECRET:local-development-secret-change-me-please-32}
+    issuer: ${SECURITY_JWT_ISSUER:hr-platform}
+    access-token-ttl: ${SECURITY_JWT_ACCESS_TOKEN_TTL:30m}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+app:
+  datasource:
+    write:
+      url: ${MYSQL_WRITE_URL:jdbc:mysql://127.0.0.1:3306/identity_db?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai}
+      username: ${MYSQL_USERNAME:hr}
+      password: ${MYSQL_PASSWORD:hr-password}
+      maximum-pool-size: ${MYSQL_WRITE_POOL_SIZE:10}
+      minimum-idle: ${MYSQL_WRITE_MIN_IDLE:2}
+    read:
+      url: ${MYSQL_READ_URL:jdbc:mysql://127.0.0.1:3307/identity_db?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai}
+      username: ${MYSQL_USERNAME:hr}
+      password: ${MYSQL_PASSWORD:hr-password}
+      maximum-pool-size: ${MYSQL_READ_POOL_SIZE:10}
+      minimum-idle: ${MYSQL_READ_MIN_IDLE:2}

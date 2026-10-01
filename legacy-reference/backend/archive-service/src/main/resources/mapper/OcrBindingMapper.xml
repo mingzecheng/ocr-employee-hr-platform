@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hrplatform.archive.ocr.OcrBindingMapper">
+    <resultMap id="bindingMap" type="com.hrplatform.archive.ocr.OcrBinding">
+        <id property="id" column="id"/>
+        <result property="versionId" column="version_id"/>
+        <result property="ocrTaskId" column="ocr_task_id"/>
+        <result property="status" column="status"/>
+        <result property="engineVersion" column="engine_version"/>
+        <result property="detectionPreviewUrl" column="detection_preview_url"/>
+        <result property="detectionPreviewContentType" column="detection_preview_content_type"/>
+        <result property="detectionPreviewSize" column="detection_preview_size"/>
+        <result property="detectionPreviewSha256" column="detection_preview_sha256"/>
+        <result property="detectionPreviewWidth" column="detection_preview_width"/>
+        <result property="detectionPreviewHeight" column="detection_preview_height"/>
+        <result property="fieldCount" column="field_count"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <resultMap id="failureMap" type="com.hrplatform.archive.ocr.OcrFailureData">
+        <constructor>
+            <idArg column="binding_id" javaType="java.lang.Long"/>
+            <arg column="version_id" javaType="java.lang.Long"/>
+            <arg column="employee_id" javaType="java.lang.Long"/>
+            <arg column="ocr_task_id" javaType="java.lang.String"/>
+            <arg column="error_message" javaType="java.lang.String"/>
+            <arg column="updated_at" javaType="java.time.LocalDateTime"/>
+        </constructor>
+    </resultMap>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO ocr_binding (
+            version_id, ocr_task_id, status, engine_version, detection_preview_url,
+            detection_preview_content_type, detection_preview_size, detection_preview_sha256,
+            detection_preview_width, detection_preview_height, field_count
+        ) VALUES (
+            #{versionId}, #{ocrTaskId}, #{status}, #{engineVersion}, #{detectionPreviewUrl},
+            #{detectionPreviewContentType}, #{detectionPreviewSize}, #{detectionPreviewSha256},
+            #{detectionPreviewWidth}, #{detectionPreviewHeight}, #{fieldCount}
+        )
+    </insert>
+
+    <delete id="deleteByVersionId">
+        DELETE FROM ocr_binding WHERE version_id = #{versionId}
+    </delete>
+
+    <select id="findByIdInScope" resultMap="bindingMap">
+        SELECT b.id, b.version_id, b.ocr_task_id, b.status, b.engine_version, b.detection_preview_url,
+               b.detection_preview_content_type, b.detection_preview_size, b.detection_preview_sha256,
+               b.detection_preview_width, b.detection_preview_height, b.field_count, b.created_at, b.updated_at
+        FROM ocr_binding b
+        JOIN archive_version v ON v.id = b.version_id
+        JOIN archive_document d ON d.id = v.document_id AND d.status = 'ACTIVE'
+        JOIN archive_record ar ON ar.id = d.archive_record_id AND ar.status = 'ACTIVE'
+        JOIN employee e ON e.id = ar.employee_id AND e.status = 'ACTIVE'
+        WHERE b.id = #{id}
+        <choose>
+            <when test="scopeType == 'ALL'">AND 1 = 1</when>
+            <when test="scopeType == 'DEPARTMENT'">AND e.department_id = #{departmentId}</when>
+            <when test="scopeType == 'EMPLOYEE'">AND e.id = #{employeeId}</when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+    </select>
+
+    <select id="findByVersionIdInScope" resultMap="bindingMap">
+        SELECT b.id, b.version_id, b.ocr_task_id, b.status, b.engine_version, b.detection_preview_url,
+               b.detection_preview_content_type, b.detection_preview_size, b.detection_preview_sha256,
+               b.detection_preview_width, b.detection_preview_height, b.field_count, b.created_at, b.updated_at
+        FROM ocr_binding b
+        JOIN archive_version v ON v.id = b.version_id
+        JOIN archive_document d ON d.id = v.document_id AND d.status = 'ACTIVE'
+        JOIN archive_record ar ON ar.id = d.archive_record_id AND ar.status = 'ACTIVE'
+        JOIN employee e ON e.id = ar.employee_id AND e.status = 'ACTIVE'
+        WHERE b.version_id = #{versionId}
+        <choose>
+            <when test="scopeType == 'ALL'">AND 1 = 1</when>
+            <when test="scopeType == 'DEPARTMENT'">AND e.department_id = #{departmentId}</when>
+            <when test="scopeType == 'EMPLOYEE'">AND e.id = #{employeeId}</when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+    </select>
+
+    <select id="listFailuresInScope" resultMap="failureMap">
+        SELECT b.id AS binding_id, b.version_id, e.id AS employee_id, b.ocr_task_id,
+               b.error_message, b.updated_at
+        FROM ocr_binding b
+        JOIN archive_version v ON v.id = b.version_id
+        JOIN archive_document d ON d.id = v.document_id AND d.status = 'ACTIVE'
+        JOIN archive_record ar ON ar.id = d.archive_record_id AND ar.status = 'ACTIVE'
+        JOIN employee e ON e.id = ar.employee_id AND e.status = 'ACTIVE'
+        WHERE b.status = 'FAILED'
+        <choose>
+            <when test="scopeType == 'ALL'">AND 1 = 1</when>
+            <when test="scopeType == 'DEPARTMENT'">AND e.department_id = #{departmentId}</when>
+            <when test="scopeType == 'EMPLOYEE'">AND e.id = #{employeeId}</when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+        ORDER BY b.updated_at DESC, b.id DESC
+        LIMIT #{limit}
+    </select>
+
+    <insert id="insertConfirmation" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO ocr_field_confirmation (
+            binding_id, field_code, original_value, confirmed_value, confidence, operator_id, reason
+        ) VALUES (
+            #{bindingId}, #{fieldCode}, #{originalValue}, #{confirmedValue}, #{confidence}, #{operatorId}, #{reason}
+        )
+    </insert>
+</mapper>

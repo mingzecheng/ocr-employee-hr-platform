@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hrplatform.identity.org.DepartmentMapper">
+    <select id="findActiveTree" resultType="com.hrplatform.identity.org.DepartmentNode">
+        SELECT id,
+               parent_id AS parentId,
+               code,
+               name,
+               sort_no AS sortNo,
+               (status = 'ACTIVE') AS active
+        FROM org_department
+        WHERE status = 'ACTIVE'
+        ORDER BY sort_no, id
+    </select>
+</mapper>

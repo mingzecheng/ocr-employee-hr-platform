@@ -1,0 +1,2 @@
+com.hrplatform.common.web.CommonWebConfiguration
+com.hrplatform.common.cache.RedisConfiguration

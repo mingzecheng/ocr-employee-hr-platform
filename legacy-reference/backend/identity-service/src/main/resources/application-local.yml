@@ -1,0 +1,12 @@
+spring:
+  config:
+    activate:
+      on-profile: local
+
+logging:
+  level:
+    com.hrplatform.identity: INFO
+
+identity:
+  seed:
+    admin-password: ${IDENTITY_ADMIN_PASSWORD:test-password}

@@ -1,0 +1,105 @@
+services:
+  mysql-primary:
+    image: mysql:8.0.39
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD is required}
+      MYSQL_DATABASE: identity_db
+      MYSQL_USER: ${MYSQL_USERNAME:-hr}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD is required}
+      MYSQL_REPLICATION_USER: ${MYSQL_REPLICATION_USER:-repl}
+      MYSQL_REPLICATION_PASSWORD: ${MYSQL_REPLICATION_PASSWORD:?MYSQL_REPLICATION_PASSWORD is required}
+    ports:
+      - "${MYSQL_PRIMARY_PORT:-3306}:3306"
+    volumes:
+      - mysql_primary_data:/var/lib/mysql
+      - ./mysql/primary/conf.d/server.cnf:/etc/mysql/conf.d/zz-platform.cnf:ro
+      - ./mysql/primary/init/01-create-databases.sql:/docker-entrypoint-initdb.d/01-create-databases.sql:ro
+      - ./mysql/primary/init/02-create-users.sh:/docker-entrypoint-initdb.d/02-create-users.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$${MYSQL_ROOT_PASSWORD}\" --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  mysql-replica:
+    image: mysql:8.0.39
+    restart: unless-stopped
+    depends_on:
+      mysql-primary:
+        condition: service_healthy
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD is required}
+      MYSQL_DATABASE: identity_db
+      MYSQL_REPLICATION_USER: ${MYSQL_REPLICATION_USER:-repl}
+      MYSQL_REPLICATION_PASSWORD: ${MYSQL_REPLICATION_PASSWORD:?MYSQL_REPLICATION_PASSWORD is required}
+    ports:
+      - "${MYSQL_REPLICA_PORT:-3307}:3306"
+    volumes:
+      - mysql_replica_data:/var/lib/mysql
+      - ./mysql/replica/conf.d/server.cnf:/etc/mysql/conf.d/zz-platform.cnf:ro
+      - ./mysql/replica/init/01-replica-init.sql:/docker-entrypoint-initdb.d/01-replica-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$${MYSQL_ROOT_PASSWORD}\" --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  mysql-replica-configure:
+    image: mysql:8.0.39
+    restart: "no"
+    depends_on:
+      mysql-primary:
+        condition: service_healthy
+      mysql-replica:
+        condition: service_healthy
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD is required}
+      MYSQL_REPLICATION_USER: ${MYSQL_REPLICATION_USER:-repl}
+      MYSQL_REPLICATION_PASSWORD: ${MYSQL_REPLICATION_PASSWORD:?MYSQL_REPLICATION_PASSWORD is required}
+      MYSQL_REPLICA_HOST: mysql-replica
+      MYSQL_REPLICA_PORT: 3306
+    command: ["bash", "-c", "/usr/local/bin/configure-replica.sh"]
+    volumes:
+      - ./mysql/replica/init/02-configure-replica.sh:/usr/local/bin/configure-replica.sh:ro
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  minio:
+    image: quay.io/minio/minio@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
+    restart: unless-stopped
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
+    ports:
+      - "${MINIO_API_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:9000/minio/health/live >/dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+volumes:
+  mysql_primary_data:
+  mysql_replica_data:
+  redis_data:
+  minio_data:

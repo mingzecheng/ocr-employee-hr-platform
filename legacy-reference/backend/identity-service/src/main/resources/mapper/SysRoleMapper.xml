@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hrplatform.identity.role.SysRoleMapper">
+    <select id="findCodesByUserId" resultType="string">
+        SELECT r.code
+        FROM sys_role r
+        INNER JOIN sys_user_role ur ON ur.role_id = r.id
+        WHERE ur.user_id = #{userId}
+          AND r.status = 'ACTIVE'
+        ORDER BY r.code
+    </select>
+
+    <select id="findPermissionCodesByUserId" resultType="string">
+        SELECT DISTINCT p.code
+        FROM sys_permission p
+        INNER JOIN sys_role_permission rp ON rp.permission_id = p.id
+        INNER JOIN sys_user_role ur ON ur.role_id = rp.role_id
+        WHERE ur.user_id = #{userId}
+          AND p.status = 'ACTIVE'
+        ORDER BY p.code
+    </select>
+
+    <select id="findIdByCode" resultType="long">
+        SELECT id
+        FROM sys_role
+        WHERE code = #{code}
+          AND status = 'ACTIVE'
+    </select>
+
+    <insert id="insertUserRole">
+        INSERT INTO sys_user_role (user_id, role_id)
+        VALUES (#{userId}, #{roleId})
+    </insert>
+</mapper>

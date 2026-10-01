@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hrplatform.workflow.inventory.InventoryMapper">
+    <resultMap id="taskMap" type="com.hrplatform.workflow.inventory.InventoryTask">
+        <id property="id" column="id"/>
+        <result property="taskNo" column="task_no"/>
+        <result property="scopeType" column="scope_type"/>
+        <result property="scopeValue" column="scope_value"/>
+        <result property="initiatorId" column="initiator_id"/>
+        <result property="status" column="status"/>
+        <result property="startedAt" column="started_at"/>
+        <result property="completedAt" column="completed_at"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+    <resultMap id="itemMap" type="com.hrplatform.workflow.inventory.InventoryItem">
+        <id property="id" column="id"/>
+        <result property="taskId" column="task_id"/>
+        <result property="archiveDocumentId" column="archive_document_id"/>
+        <result property="employeeId" column="employee_id"/>
+        <result property="departmentId" column="department_id"/>
+        <result property="expectedVersionId" column="expected_version_id"/>
+        <result property="actualVersionId" column="actual_version_id"/>
+        <result property="actualStatus" column="actual_status"/>
+        <result property="differenceType" column="difference_type"/>
+        <result property="differenceDescription" column="difference_description"/>
+        <result property="checkedBy" column="checked_by"/>
+        <result property="checkedAt" column="checked_at"/>
+    </resultMap>
+    <resultMap id="resolutionMap" type="com.hrplatform.workflow.inventory.InventoryResolution">
+        <id property="id" column="id"/>
+        <result property="taskId" column="task_id"/>
+        <result property="operatorId" column="operator_id"/>
+        <result property="resolution" column="resolution"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <insert id="insertTask" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO inventory_task (task_no, scope_type, scope_value, initiator_id, status)
+        VALUES (#{taskNo}, #{scopeType}, #{scopeValue}, #{initiatorId}, #{status})
+    </insert>
+    <insert id="insertItem" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO inventory_item (task_id, archive_document_id, employee_id, department_id, expected_version_id)
+        VALUES (#{taskId}, #{archiveDocumentId}, #{employeeId}, #{departmentId}, #{expectedVersionId})
+    </insert>
+    <select id="findTaskById" resultMap="taskMap">
+        SELECT id, task_no, scope_type, scope_value, initiator_id, status, started_at, completed_at,
+               created_at, updated_at
+        FROM inventory_task t
+        WHERE t.id = #{id}
+          AND EXISTS (
+              SELECT 1 FROM inventory_item i
+              WHERE i.task_id = t.id
+                AND (
+                    #{scopeType} = 'ALL'
+                    OR (#{scopeType} = 'DEPARTMENT' AND i.department_id = #{departmentId})
+                    OR (#{scopeType} = 'EMPLOYEE' AND i.employee_id = #{employeeId})
+                )
+          )
+    </select>
+    <select id="findItems" resultMap="itemMap">
+        SELECT id, task_id, archive_document_id, employee_id, department_id, expected_version_id, actual_version_id, actual_status,
+               difference_type, difference_description, checked_by, checked_at
+        FROM inventory_item
+        WHERE task_id = #{taskId}
+          AND (
+              #{scopeType} = 'ALL'
+              OR (#{scopeType} = 'DEPARTMENT' AND department_id = #{departmentId})
+              OR (#{scopeType} = 'EMPLOYEE' AND employee_id = #{employeeId})
+          )
+        ORDER BY id
+    </select>
+    <select id="findItemById" resultMap="itemMap">
+        SELECT id, task_id, archive_document_id, employee_id, department_id, expected_version_id, actual_version_id, actual_status,
+               difference_type, difference_description, checked_by, checked_at
+        FROM inventory_item
+        WHERE id = #{id}
+          AND (
+              #{scopeType} = 'ALL'
+              OR (#{scopeType} = 'DEPARTMENT' AND department_id = #{departmentId})
+              OR (#{scopeType} = 'EMPLOYEE' AND employee_id = #{employeeId})
+          )
+    </select>
+    <select id="countItems" resultType="int">
+        SELECT COUNT(*) FROM inventory_item WHERE task_id = #{taskId}
+    </select>
+    <select id="countItemsInScope" resultType="int">
+        SELECT COUNT(*) FROM inventory_item
+        WHERE task_id = #{taskId}
+          AND (
+              #{scopeType} = 'ALL'
+              OR (#{scopeType} = 'DEPARTMENT' AND department_id = #{departmentId})
+              OR (#{scopeType} = 'EMPLOYEE' AND employee_id = #{employeeId})
+          )
+    </select>
+    <update id="updateTaskState">
+        UPDATE inventory_task
+        SET status = #{status}, started_at = #{startedAt}, completed_at = #{completedAt}
+        WHERE id = #{id}
+    </update>
+    <update id="updateItemCheck">
+        UPDATE inventory_item
+        SET actual_version_id = #{actualVersionId}, actual_status = #{actualStatus},
+            difference_type = #{differenceType}, difference_description = #{differenceDescription},
+            checked_by = #{checkedBy}, checked_at = #{checkedAt}
+        WHERE id = #{id} AND checked_at IS NULL
+    </update>
+    <insert id="insertResolution" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO inventory_resolution (task_id, operator_id, resolution, created_at)
+        VALUES (#{taskId}, #{operatorId}, #{resolution}, #{createdAt})
+    </insert>
+    <select id="findResolutionByTaskId" resultMap="resolutionMap">
+        SELECT id, task_id, operator_id, resolution, created_at
+        FROM inventory_resolution WHERE task_id = #{taskId} ORDER BY id
+    </select>
+    <insert id="insertAudit" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO audit_log (actor_user_id, action_code, resource_type, resource_id, detail_json)
+        VALUES (#{actorUserId}, #{actionCode}, #{resourceType}, #{resourceId}, #{detailJson})
+    </insert>
+</mapper>

@@ -1,0 +1,14 @@
+[mysqld]
+server-id=2
+relay-log=relay-bin
+log_bin=mysql-bin
+log_replica_updates=ON
+binlog_format=ROW
+gtid_mode=ON
+enforce_gtid_consistency=ON
+binlog_expire_logs_seconds=604800
+character-set-server=utf8mb4
+collation-server=utf8mb4_0900_ai_ci
+skip_name_resolve=ON
+
+# The bootstrap script persists read_only and super_read_only after initialization.
