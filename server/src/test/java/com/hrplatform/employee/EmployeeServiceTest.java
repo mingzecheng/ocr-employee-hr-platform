@@ -9,6 +9,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -53,5 +54,20 @@ class EmployeeServiceTest {
         assertThatThrownBy(() -> new EmployeeService(mapper, operationLogService)
                 .getRequired(7L, new DataScope(DataScope.Type.DEPARTMENT, 5L, null, 100L)))
                 .isInstanceOf(DataScopeDeniedException.class);
+    }
+
+    @Test
+    void listUsesEmployeeScopeAndReturnsPageMetadata() {
+        when(mapper.list(null, null, null, 42L, "EMPLOYEE", 0, 20))
+                .thenReturn(java.util.List.of(new Employee(42L, "DEMO-42", "演示员工", null,
+                        7L, 8L, EmployeeStatus.ACTIVE, null, null)));
+        when(mapper.count(null, null, null, 42L, "EMPLOYEE")).thenReturn(1L);
+
+        EmployeePage page = new EmployeeService(mapper, operationLogService).list(null, null, null, 1, 20,
+                new DataScope(DataScope.Type.EMPLOYEE, 9L, 42L, 7L));
+
+        assertThat(page.total()).isEqualTo(1L);
+        assertThat(page.items()).hasSize(1);
+        verify(mapper).list(null, null, null, 42L, "EMPLOYEE", 0, 20);
     }
 }

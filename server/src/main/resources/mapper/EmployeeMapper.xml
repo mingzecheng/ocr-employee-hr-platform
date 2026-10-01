@@ -18,6 +18,41 @@
         FROM employee WHERE employee_no = #{employeeNo} LIMIT 1
     </select>
 
+    <sql id="scopePredicate">
+        <choose>
+            <when test="scopeType == 'ALL'">AND 1 = 1</when>
+            <when test="scopeType == 'DEPARTMENT'">AND e.department_id = #{departmentId}</when>
+            <when test="scopeType == 'EMPLOYEE'">AND e.id = #{employeeId}</when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+    </sql>
+
+    <select id="list" resultMap="EmployeeMap">
+        SELECT e.id, e.employee_no, e.name, e.phone, e.department_id, e.position_id,
+               e.status, e.hire_date, e.leave_date
+        FROM employee e
+        WHERE 1 = 1
+        <if test="keyword != null and keyword != ''">
+            AND (e.employee_no LIKE CONCAT('%', #{keyword}, '%') OR e.name LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="status != null and status != ''">AND e.status = #{status}</if>
+        <if test="departmentId != null">AND e.department_id = #{departmentId}</if>
+        <include refid="scopePredicate"/>
+        ORDER BY e.created_at DESC, e.id DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="count" resultType="long">
+        SELECT COUNT(*) FROM employee e
+        WHERE 1 = 1
+        <if test="keyword != null and keyword != ''">
+            AND (e.employee_no LIKE CONCAT('%', #{keyword}, '%') OR e.name LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="status != null and status != ''">AND e.status = #{status}</if>
+        <if test="departmentId != null">AND e.department_id = #{departmentId}</if>
+        <include refid="scopePredicate"/>
+    </select>
+
     <select id="findByIdWithScope" resultMap="EmployeeMap">
         SELECT id, employee_no, name, phone, department_id, position_id, status, hire_date, leave_date
         FROM employee

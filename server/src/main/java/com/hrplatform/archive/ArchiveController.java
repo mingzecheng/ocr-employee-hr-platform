@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
@@ -37,6 +38,24 @@ public class ArchiveController {
         ArchiveVersion version = service.createVersion(employeeId, documentType, file.getOriginalFilename(),
                 file.getContentType(), file.getBytes(), principal.dataScope(), principal.userId());
         return ApiResponse.success(version, "unknown");
+    }
+
+    @GetMapping("/employees/{employeeId}/documents")
+    public ApiResponse<ArchiveDocumentPage> documents(@PathVariable Long employeeId,
+                                                       @RequestParam(defaultValue = "1") int page,
+                                                       @RequestParam(defaultValue = "20") int pageSize,
+                                                       Authentication authentication) {
+        JwtPrincipal principal = (JwtPrincipal) authentication.getPrincipal();
+        return ApiResponse.success(service.listDocuments(employeeId, page, pageSize, principal.dataScope()), "unknown");
+    }
+
+    @GetMapping("/documents/{documentId}/versions")
+    public ApiResponse<ArchiveVersionPage> versions(@PathVariable Long documentId,
+                                                    @RequestParam(defaultValue = "1") int page,
+                                                    @RequestParam(defaultValue = "20") int pageSize,
+                                                    Authentication authentication) {
+        JwtPrincipal principal = (JwtPrincipal) authentication.getPrincipal();
+        return ApiResponse.success(service.listVersions(documentId, page, pageSize, principal.dataScope()), "unknown");
     }
 
     @GetMapping("/versions/{versionId}/download")

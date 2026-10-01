@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.regex.Pattern;
+import java.util.List;
 
 @Service
 public class EmployeeService {
@@ -46,5 +47,19 @@ public class EmployeeService {
             throw new DataScopeDeniedException(employeeId);
         }
         return employee;
+    }
+
+    @Transactional(readOnly = true)
+    public EmployeePage list(String keyword, Long departmentId, EmployeeStatus status,
+                             int page, int pageSize, DataScope scope) {
+        int safePage = Math.max(1, page);
+        int safeSize = Math.min(100, Math.max(1, pageSize));
+        Long scopedDepartment = scope.type() == DataScope.Type.DEPARTMENT ? scope.departmentId() : departmentId;
+        Long scopedEmployee = scope.type() == DataScope.Type.EMPLOYEE ? scope.employeeId() : null;
+        List<Employee> items = mapper.list(keyword, status == null ? null : status.name(), scopedDepartment,
+                scopedEmployee, scope.type().name(), (safePage - 1) * safeSize, safeSize);
+        long total = mapper.count(keyword, status == null ? null : status.name(), scopedDepartment,
+                scopedEmployee, scope.type().name());
+        return new EmployeePage(items, total, safePage, safeSize);
     }
 }

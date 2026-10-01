@@ -1,6 +1,31 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.hrplatform.inventory.InventoryMapper">
+    <select id="listTasks" resultType="com.hrplatform.inventory.InventoryTask">
+        SELECT DISTINCT t.id, t.task_no, t.status, t.initiator_id
+        FROM inventory_task t
+        LEFT JOIN inventory_item i ON i.task_id = t.id
+        WHERE 1 = 1
+        <choose>
+            <when test="scopeType == 'ALL'">AND 1 = 1</when>
+            <when test="scopeType == 'DEPARTMENT'">AND i.department_id = #{departmentId}</when>
+            <when test="scopeType == 'EMPLOYEE'">AND i.employee_id = #{employeeId}</when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+        ORDER BY t.created_at DESC, t.id DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+    <select id="countTasks" resultType="long">
+        SELECT COUNT(DISTINCT t.id)
+        FROM inventory_task t LEFT JOIN inventory_item i ON i.task_id = t.id
+        WHERE 1 = 1
+        <choose>
+            <when test="scopeType == 'ALL'">AND 1 = 1</when>
+            <when test="scopeType == 'DEPARTMENT'">AND i.department_id = #{departmentId}</when>
+            <when test="scopeType == 'EMPLOYEE'">AND i.employee_id = #{employeeId}</when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+    </select>
     <insert id="insertTask" parameterType="com.hrplatform.inventory.InventoryTask"
             useGeneratedKeys="true" keyProperty="id" keyColumn="id">
         INSERT INTO inventory_task (task_no, initiator_id, status) VALUES (#{taskNo}, #{initiatorId}, #{status})
@@ -15,8 +40,16 @@
     </insert>
     <select id="findTask" resultType="com.hrplatform.inventory.InventoryTask">
         SELECT t.id, t.task_no, t.status, t.initiator_id
-        FROM inventory_task t WHERE t.id = #{id}
-        <choose><when test="scopeType == 'ALL'">AND 1 = 1</when><otherwise>AND t.initiator_id = #{departmentId}</otherwise></choose>
+        FROM inventory_task t
+        <if test="scopeType == 'DEPARTMENT'">JOIN inventory_item i ON i.task_id = t.id</if>
+        WHERE t.id = #{id}
+        <choose>
+            <when test="scopeType == 'ALL'">AND 1 = 1</when>
+            <when test="scopeType == 'DEPARTMENT'">AND i.department_id = #{departmentId}</when>
+            <when test="scopeType == 'EMPLOYEE'">AND i.employee_id = #{employeeId}</when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+        LIMIT 1
     </select>
     <select id="listItems" resultType="com.hrplatform.inventory.InventoryItem">
         SELECT id, task_id, archive_version_id AS expected_version_id, actual_version_id, employee_id,

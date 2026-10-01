@@ -5,6 +5,20 @@ import org.apache.ibatis.annotations.Param;
 
 @Mapper
 public interface EmployeeMapper {
+    java.util.List<Employee> list(@Param("keyword") String keyword,
+                                  @Param("status") String status,
+                                  @Param("departmentId") Long departmentId,
+                                  @Param("employeeId") Long employeeId,
+                                  @Param("scopeType") String scopeType,
+                                  @Param("offset") int offset,
+                                  @Param("limit") int limit);
+
+    long count(@Param("keyword") String keyword,
+               @Param("status") String status,
+               @Param("departmentId") Long departmentId,
+               @Param("employeeId") Long employeeId,
+               @Param("scopeType") String scopeType);
+
     Employee findByEmployeeNo(@Param("employeeNo") String employeeNo);
 
     Employee findByIdWithScope(

@@ -49,6 +49,18 @@ public class InventoryService {
         return result;
     }
 
+    @Transactional(readOnly = true)
+    public InventoryPage list(int page, int pageSize, InventoryActor actor) {
+        int safePage = Math.max(1, page);
+        int safeSize = Math.min(100, Math.max(1, pageSize));
+        DataScope scope = actor.scope();
+        Long employeeId = scope.type() == DataScope.Type.EMPLOYEE ? scope.employeeId() : null;
+        Long departmentId = scope.type() == DataScope.Type.DEPARTMENT ? scope.departmentId() : null;
+        return new InventoryPage(mapper.listTasks(departmentId, employeeId, scope.type().name(),
+                (safePage - 1) * safeSize, safeSize),
+                mapper.countTasks(departmentId, employeeId, scope.type().name()), safePage, safeSize);
+    }
+
     @Transactional
     public InventoryTask start(Long id, InventoryActor actor) {
         InventoryTask task = require(id, actor);

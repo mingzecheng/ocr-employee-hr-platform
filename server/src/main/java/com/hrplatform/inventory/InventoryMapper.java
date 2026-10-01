@@ -7,6 +7,13 @@ import java.util.List;
 
 @Mapper
 public interface InventoryMapper {
+    List<InventoryTask> listTasks(@Param("departmentId") Long departmentId,
+                                  @Param("employeeId") Long employeeId,
+                                  @Param("scopeType") String scopeType,
+                                  @Param("offset") int offset,
+                                  @Param("limit") int limit);
+    long countTasks(@Param("departmentId") Long departmentId, @Param("employeeId") Long employeeId,
+                    @Param("scopeType") String scopeType);
     InventoryTask insertTask(InventoryTask task);
     InventoryItem insertItem(InventoryItem item);
     InventoryTask findTask(@Param("id") Long id, @Param("departmentId") Long departmentId,

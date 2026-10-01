@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hrplatform.audit.OperationLogMapper">
+    <resultMap id="LogMap" type="com.hrplatform.audit.OperationLogRecord">
+        <constructor>
+            <idArg column="id" javaType="java.lang.Long"/><arg column="operator_id" javaType="java.lang.Long"/>
+            <arg column="action" javaType="java.lang.String"/><arg column="object_type" javaType="java.lang.String"/>
+            <arg column="object_id" javaType="java.lang.Long"/><arg column="result" javaType="java.lang.String"/>
+            <arg column="trace_id" javaType="java.lang.String"/><arg column="created_at" javaType="java.time.LocalDateTime"/>
+        </constructor>
+    </resultMap>
+    <insert id="insert" parameterType="com.hrplatform.audit.OperationLogRecord"
+            useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO operation_log (operator_id, action, object_type, object_id, result, trace_id, created_at)
+        VALUES (#{operatorId}, #{action}, #{objectType}, #{objectId}, #{result}, #{traceId}, #{createdAt})
+    </insert>
+    <select id="list" resultMap="LogMap">
+        SELECT id, operator_id, action, object_type, object_id, result, trace_id, created_at
+        FROM operation_log WHERE 1 = 1
+        <if test="operatorId != null">AND operator_id = #{operatorId}</if>
+        <if test="action != null and action != ''">AND action = #{action}</if>
+        <if test="objectType != null and objectType != ''">AND object_type = #{objectType}</if>
+        <if test="result != null and result != ''">AND result = #{result}</if>
+        <if test="from != null">AND created_at &gt;= #{from}</if>
+        <if test="to != null">AND created_at &lt; DATE_ADD(#{to}, INTERVAL 1 DAY)</if>
+        ORDER BY created_at DESC, id DESC LIMIT #{offset}, #{limit}
+    </select>
+    <select id="count" resultType="long">
+        SELECT COUNT(*) FROM operation_log WHERE 1 = 1
+        <if test="operatorId != null">AND operator_id = #{operatorId}</if>
+        <if test="action != null and action != ''">AND action = #{action}</if>
+        <if test="objectType != null and objectType != ''">AND object_type = #{objectType}</if>
+        <if test="result != null and result != ''">AND result = #{result}</if>
+        <if test="from != null">AND created_at &gt;= #{from}</if>
+        <if test="to != null">AND created_at &lt; DATE_ADD(#{to}, INTERVAL 1 DAY)</if>
+    </select>
+</mapper>

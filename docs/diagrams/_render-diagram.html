@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>Diagram Render</title>
+  <style>
+    html, body { margin: 0; padding: 0; background: #ffffff; }
+    iframe { display: block; border: 0; width: 1800px; height: 1100px; }
+  </style>
+</head>
+<body>
+  <iframe id="drawio" src="https://embed.diagrams.net/?embed=1&ui=atlas&spin=1&proto=json"></iframe>
+  <script>
+    const frame = document.getElementById('drawio');
+    const file = new URLSearchParams(location.search).get('file');
+
+    window.addEventListener('message', async (event) => {
+      if (event.source !== frame.contentWindow || typeof event.data !== 'string') return;
+      let message;
+      try { message = JSON.parse(event.data); } catch (_) { return; }
+      if (message.event === 'init') {
+        const response = await fetch('/docs/diagrams/' + encodeURIComponent(file));
+        const xml = await response.text();
+        frame.contentWindow.postMessage(JSON.stringify({ action: 'load', xml, autosave: 0 }), '*');
+      }
+      if (message.event === 'load') {
+        document.body.dataset.loaded = 'true';
+      }
+    });
+  </script>
+</body>
+</html>

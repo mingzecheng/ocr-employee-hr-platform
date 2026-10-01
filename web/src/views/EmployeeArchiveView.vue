@@ -1,0 +1,24 @@
+<script setup lang="ts">
+import { onMounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
+import type { UploadFile } from 'element-plus'
+import { UploadFilled, View, Cpu, Download, ArrowLeft } from '@element-plus/icons-vue'
+import { http, request, type ArchiveDocument, type ArchiveVersion, type Employee, type Page, type OcrResult } from '../api/http'
+
+const route = useRoute(); const router = useRouter(); const employeeId = Number(route.params.id)
+const loading = ref(false); const employee = ref<Employee | null>(null); const documents = ref<Page<ArchiveDocument>>({ items: [], total: 0, page: 1, pageSize: 20 }); const versions = ref<Record<number, ArchiveVersion[]>>({}); const uploading = ref(false)
+const documentTypes = [{ label: '员工档案', value: 'employee_profile' }, { label: '入职材料', value: 'onboarding' }, { label: '调动材料', value: 'transfer' }, { label: '离职材料', value: 'offboarding' }]
+const selectedType = ref('employee_profile')
+async function load() { loading.value = true; try { employee.value = await request<Employee>({ url: `/employees/${employeeId}` }); documents.value = await request<Page<ArchiveDocument>>({ url: `/archive/employees/${employeeId}/documents` }); await Promise.all(documents.value.items.map(async (doc) => { const page = await request<Page<ArchiveVersion>>({ url: `/archive/documents/${doc.id}/versions`, params: { page: 1, pageSize: 20 } }); versions.value[doc.id] = page.items })) } catch (e) { ElMessage.error(e instanceof Error ? e.message : '档案加载失败') } finally { loading.value = false } }
+async function upload(file: File) { if (!['image/png', 'image/jpeg'].includes(file.type)) { ElMessage.warning('仅支持 PNG 或 JPEG 图片'); return } const form = new FormData(); form.append('documentType', selectedType.value); form.append('file', file); uploading.value = true; try { await request<ArchiveVersion>({ url: `/archive/employees/${employeeId}/documents`, method: 'POST', data: form, headers: { 'Content-Type': 'multipart/form-data' } }); ElMessage.success('材料已上传'); await load() } catch (e) { ElMessage.error(e instanceof Error ? e.message : '上传失败') } finally { uploading.value = false } }
+async function triggerOcr(version: ArchiveVersion) { try { const result = await request<OcrResult>({ url: `/archive/versions/${version.id}/ocr`, method: 'POST', params: { documentType: selectedType.value } }); router.push(`/ocr/${result.versionId}`) } catch (e) { ElMessage.error(e instanceof Error ? e.message : 'OCR 触发失败') } }
+function download(version: ArchiveVersion) { window.open(`${import.meta.env.VITE_API_BASE_URL || '/api'}/archive/versions/${version.id}/download`, '_blank') }
+onMounted(load)
+</script>
+
+<template>
+  <div class="page-head compact-head"><div><el-button text @click="router.push('/employees')"><el-icon><ArrowLeft /></el-icon>返回员工</el-button><span class="section-kicker">ARCHIVE / EVIDENCE</span><h1>{{ employee?.name || '员工档案' }}</h1><p>{{ employee?.employeeNo }} · 员工主数据与材料版本</p></div><div class="head-actions"><el-select v-model="selectedType" class="doc-type"><el-option v-for="item in documentTypes" :key="item.value" v-bind="item" /></el-select><el-upload :show-file-list="false" :auto-upload="false" accept="image/png,image/jpeg" :on-change="(uploadFile: UploadFile) => upload(uploadFile.raw!)"><el-button type="primary" class="action-button" :loading="uploading"><el-icon><UploadFilled /></el-icon>上传材料</el-button></el-upload></div></div>
+  <el-alert type="info" :closable="false" show-icon class="inline-alert" title="原图、版本号与 SHA-256 指纹会被保留；OCR 只生成可复核的业务字段，不覆盖原始证据。" />
+  <section class="archive-grid" v-loading="loading"><article v-for="doc in documents.items" :key="doc.id" class="surface-panel document-panel"><div class="document-title"><div class="doc-icon">▤</div><div><span class="section-kicker">{{ doc.documentType }}</span><h2>{{ doc.title }}</h2></div><el-tag effect="plain">{{ (versions[doc.id] || []).length }} 个版本</el-tag></div><div class="version-list"><div v-for="version in versions[doc.id] || []" :key="version.id" class="version-row"><div><strong>V{{ version.versionNo }} · {{ version.originalName }}</strong><small>{{ new Date(version.createdAt).toLocaleString('zh-CN') }} · {{ Math.round(version.size / 1024) }} KB</small></div><el-tag v-if="version.isCurrent" type="success" effect="plain">当前</el-tag><div class="version-actions"><el-button link title="下载原图" @click="download(version)"><el-icon><Download /></el-icon></el-button><el-button link type="primary" title="触发 OCR" @click="triggerOcr(version)"><el-icon><Cpu /></el-icon>识别</el-button></div></div><el-empty v-if="!(versions[doc.id] || []).length" description="暂无版本" :image-size="60" /></div></article><el-empty v-if="!documents.items.length && !loading" class="empty-panel" description="还没有归档材料，请上传第一份脱敏图片" :image-size="90" /></section>
+</template>

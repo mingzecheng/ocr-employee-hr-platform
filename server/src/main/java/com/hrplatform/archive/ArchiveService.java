@@ -3,6 +3,7 @@ package com.hrplatform.archive;
 import com.hrplatform.audit.OperationLogService;
 import com.hrplatform.common.security.DataScope;
 import com.hrplatform.employee.EmployeeMapper;
+import com.hrplatform.employee.DataScopeDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +17,7 @@ import java.time.LocalDateTime;
 import java.util.HexFormat;
 import java.util.Locale;
 import java.util.UUID;
+import java.util.List;
 
 @Service
 public class ArchiveService {
@@ -72,6 +74,34 @@ public class ArchiveService {
             throw new InvalidArchiveFileException("档案文件不存在");
         }
         return new ArchiveDownload(version.originalName(), version.contentType(), storage.get(objectKey));
+    }
+
+    @Transactional(readOnly = true)
+    public ArchiveDocumentPage listDocuments(Long employeeId, int page, int pageSize, DataScope scope) {
+        requireEmployeeScope(employeeId, scope);
+        int safePage = Math.max(1, page);
+        int safeSize = Math.min(100, Math.max(1, pageSize));
+        List<ArchiveDocument> items = mapper.listDocuments(employeeId, scope.departmentId(), scope.type().name(),
+                (safePage - 1) * safeSize, safeSize);
+        return new ArchiveDocumentPage(items, mapper.countDocuments(employeeId, scope.departmentId(), scope.type().name()),
+                safePage, safeSize);
+    }
+
+    @Transactional(readOnly = true)
+    public ArchiveVersionPage listVersions(Long documentId, int page, int pageSize, DataScope scope) {
+        int safePage = Math.max(1, page);
+        int safeSize = Math.min(100, Math.max(1, pageSize));
+        List<ArchiveVersion> items = mapper.listVersions(documentId, scope.employeeId(), scope.departmentId(),
+                scope.type().name(), (safePage - 1) * safeSize, safeSize);
+        return new ArchiveVersionPage(items, mapper.countVersions(documentId, scope.employeeId(), scope.departmentId(),
+                scope.type().name()), safePage, safeSize);
+    }
+
+    private void requireEmployeeScope(Long employeeId, DataScope scope) {
+        if (employeeId == null || employeeMapper.findByIdWithScope(employeeId, scope.employeeId(),
+                scope.departmentId(), scope.type().name()) == null) {
+            throw new DataScopeDeniedException(employeeId);
+        }
     }
 
     private void validateImage(byte[] content) {

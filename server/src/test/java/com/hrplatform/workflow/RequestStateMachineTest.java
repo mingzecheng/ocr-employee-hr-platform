@@ -10,16 +10,16 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class RequestStateMachineTest {
     @Test
     void submitAndTwoApprovalsReachApproved() {
-        assertThat(RequestStateMachine.submit("DRAFT")).isEqualTo("PENDING_DEPARTMENT");
-        assertThat(RequestStateMachine.approve("PENDING_DEPARTMENT", "DEPARTMENT",
-                Set.of("DEPT_MANAGER"))).isEqualTo("PENDING_HR");
-        assertThat(RequestStateMachine.approve("PENDING_HR", "HR",
+        assertThat(RequestStateMachine.submit("DRAFT")).isEqualTo("PENDING_DEPT_APPROVAL");
+        assertThat(RequestStateMachine.approve("PENDING_DEPT_APPROVAL", "DEPARTMENT",
+                Set.of("DEPT_MANAGER"))).isEqualTo("PENDING_HR_APPROVAL");
+        assertThat(RequestStateMachine.approve("PENDING_HR_APPROVAL", "HR",
                 Set.of("HR_ADMIN"))).isEqualTo("APPROVED");
     }
 
     @Test
     void wrongNodeAndDuplicateApprovalAreRejected() {
-        assertThatThrownBy(() -> RequestStateMachine.approve("PENDING_HR", "DEPARTMENT",
+        assertThatThrownBy(() -> RequestStateMachine.approve("PENDING_HR_APPROVAL", "DEPARTMENT",
                 Set.of("DEPT_MANAGER"))).isInstanceOf(RequestStateException.class);
         assertThatThrownBy(() -> RequestStateMachine.approve("APPROVED", "HR",
                 Set.of("HR_ADMIN"))).isInstanceOf(RequestStateException.class);
@@ -27,7 +27,7 @@ class RequestStateMachineTest {
 
     @Test
     void rejectIsAllowedOnlyAtApprovalNodes() {
-        assertThat(RequestStateMachine.reject("PENDING_DEPARTMENT")).isEqualTo("REJECTED");
+        assertThat(RequestStateMachine.reject("PENDING_DEPT_APPROVAL")).isEqualTo("REJECTED");
         assertThatThrownBy(() -> RequestStateMachine.reject("DRAFT"))
                 .isInstanceOf(RequestStateException.class);
     }

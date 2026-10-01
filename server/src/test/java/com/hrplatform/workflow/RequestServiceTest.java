@@ -28,7 +28,7 @@ class RequestServiceTest {
         when(mapper.updateState(any())).thenReturn(1);
         when(mapper.findByIdWithScope(10L, null, null, DataScope.Type.ALL.name())).thenReturn(
                 new HrRequest(10L, "HR-001", "ONBOARDING", 7L, 9L, 20L, 9L, 2L,
-                        "{}", "PENDING_HR", "HR", 1, draft.createdAt(), null, null));
+                        "{}", "PENDING_HR_APPROVAL", "HR", 1, draft.createdAt(), null, null));
         when(employeeMapper.updateStatusAndOrganization(any())).thenReturn(1);
 
         RequestService service = new RequestService(mapper, employeeMapper);
@@ -38,11 +38,11 @@ class RequestServiceTest {
                 new DataScope(DataScope.Type.ALL, 30L, null, null));
 
         HrRequest submitted = service.submit(10L, manager);
-        assertThat(submitted.status()).isEqualTo("PENDING_DEPARTMENT");
+        assertThat(submitted.status()).isEqualTo("PENDING_DEPT_APPROVAL");
         when(mapper.findByIdWithScope(10L, null, 9L, DataScope.Type.DEPARTMENT.name())).thenReturn(
                 submitted);
         HrRequest pendingHr = service.approve(10L, manager, "同意");
-        assertThat(pendingHr.status()).isEqualTo("PENDING_HR");
+        assertThat(pendingHr.status()).isEqualTo("PENDING_HR_APPROVAL");
         HrRequest approved = service.approve(10L, hr, "确认");
         assertThat(approved.status()).isEqualTo("APPROVED");
     }

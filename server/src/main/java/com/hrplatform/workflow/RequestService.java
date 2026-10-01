@@ -58,7 +58,7 @@ public class RequestService {
         HrRequest request = require(id, actor);
         authorizeNode(request, actor);
         String nextStatus = RequestStateMachine.approve(request.status(), request.currentNode(), actor.roles());
-        String nextNode = "PENDING_HR".equals(nextStatus) ? "HR" : null;
+        String nextNode = "PENDING_HR_APPROVAL".equals(nextStatus) ? "HR" : null;
         HrRequest updated = persistState(request, nextStatus, nextNode, actor.userId(), "APPROVED", comment);
         if ("APPROVED".equals(nextStatus)) {
             applyEmployeeChange(request);

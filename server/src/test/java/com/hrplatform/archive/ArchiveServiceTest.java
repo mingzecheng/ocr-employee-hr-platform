@@ -56,6 +56,22 @@ class ArchiveServiceTest {
         assertThat(result.isCurrent()).isTrue();
     }
 
+    @Test
+    void listDocumentsAppliesEmployeeScopeAndPagination() {
+        when(employeeMapper.findByIdWithScope(7L, 7L, 10L, "EMPLOYEE"))
+                .thenReturn(new Employee(7L, "DEMO-42", "演示员工", null, 10L, 8L,
+                        EmployeeStatus.ACTIVE, null, null));
+        when(mapper.listDocuments(7L, 10L, "EMPLOYEE", 0, 10))
+                .thenReturn(List.of(new ArchiveDocument(3L, 7L, "employee_profile", "员工档案")));
+        when(mapper.countDocuments(7L, 10L, "EMPLOYEE")).thenReturn(1L);
+
+        ArchiveDocumentPage page = newService().listDocuments(7L, 1, 10,
+                new DataScope(DataScope.Type.EMPLOYEE, 1L, 7L, 10L));
+
+        assertThat(page.total()).isEqualTo(1L);
+        assertThat(page.items()).containsExactly(new ArchiveDocument(3L, 7L, "employee_profile", "员工档案"));
+    }
+
     private ArchiveService newService() {
         return new ArchiveService(mapper, employeeMapper, storage, operationLogService);
     }

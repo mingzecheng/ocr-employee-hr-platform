@@ -23,6 +23,50 @@
         <result property="changeReason" column="change_reason" />
     </resultMap>
 
+    <sql id="archiveScopePredicate">
+        <choose>
+            <when test="scopeType == 'ALL'">AND 1 = 1</when>
+            <when test="scopeType == 'DEPARTMENT'">AND e.department_id = #{departmentId}</when>
+            <when test="scopeType == 'EMPLOYEE'">AND e.id = #{employeeId}</when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+    </sql>
+
+    <select id="listDocuments" resultMap="DocumentMap">
+        SELECT d.id, d.employee_id, d.document_type, d.title
+        FROM archive_document d JOIN employee e ON e.id = d.employee_id
+        WHERE 1 = 1
+        <if test="employeeId != null">AND d.employee_id = #{employeeId}</if>
+        <include refid="archiveScopePredicate"/>
+        ORDER BY d.updated_at DESC, d.id DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countDocuments" resultType="long">
+        SELECT COUNT(*) FROM archive_document d JOIN employee e ON e.id = d.employee_id
+        WHERE 1 = 1
+        <if test="employeeId != null">AND d.employee_id = #{employeeId}</if>
+        <include refid="archiveScopePredicate"/>
+    </select>
+
+    <select id="listVersions" resultMap="VersionMap">
+        SELECT v.id, v.document_id, v.version_no, v.file_object_id, v.original_name, v.content_type,
+               v.byte_size, v.sha256, v.status, v.is_current, v.created_at, v.created_by, v.change_reason
+        FROM archive_version v JOIN archive_document d ON d.id = v.document_id
+        JOIN employee e ON e.id = d.employee_id
+        WHERE v.document_id = #{documentId}
+        <include refid="archiveScopePredicate"/>
+        ORDER BY v.version_no DESC, v.id DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countVersions" resultType="long">
+        SELECT COUNT(*) FROM archive_version v JOIN archive_document d ON d.id = v.document_id
+        JOIN employee e ON e.id = d.employee_id
+        WHERE v.document_id = #{documentId}
+        <include refid="archiveScopePredicate"/>
+    </select>
+
     <select id="findDocument" resultMap="DocumentMap">
         SELECT id, employee_id, document_type, title
         FROM archive_document WHERE employee_id = #{employeeId} AND document_type = #{documentType} LIMIT 1
