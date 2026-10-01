@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hrplatform.archive.ArchiveMapper">
+    <resultMap id="DocumentMap" type="com.hrplatform.archive.ArchiveDocument">
+        <id property="id" column="id" />
+        <result property="employeeId" column="employee_id" />
+        <result property="documentType" column="document_type" />
+        <result property="title" column="title" />
+    </resultMap>
+    <resultMap id="VersionMap" type="com.hrplatform.archive.ArchiveVersion">
+        <id property="id" column="id" />
+        <result property="documentId" column="document_id" />
+        <result property="versionNo" column="version_no" />
+        <result property="fileObjectId" column="file_object_id" />
+        <result property="originalName" column="original_name" />
+        <result property="contentType" column="content_type" />
+        <result property="size" column="byte_size" />
+        <result property="sha256" column="sha256" />
+        <result property="status" column="status" />
+        <result property="isCurrent" column="is_current" />
+        <result property="createdAt" column="created_at" />
+        <result property="createdBy" column="created_by" />
+        <result property="changeReason" column="change_reason" />
+    </resultMap>
+
+    <select id="findDocument" resultMap="DocumentMap">
+        SELECT id, employee_id, document_type, title
+        FROM archive_document WHERE employee_id = #{employeeId} AND document_type = #{documentType} LIMIT 1
+    </select>
+
+    <select id="nextVersionNumber" resultType="int">
+        SELECT COALESCE(MAX(version_no), 0) + 1 FROM archive_version WHERE document_id = #{documentId}
+    </select>
+
+    <insert id="insertDocument" parameterType="com.hrplatform.archive.ArchiveDocument" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO archive_document (employee_id, document_type, title)
+        VALUES (#{employeeId}, #{documentType}, #{title})
+    </insert>
+
+    <insert id="insertFile" parameterType="com.hrplatform.archive.FileObject" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO file_object (object_key, original_name, content_type, byte_size, sha256)
+        VALUES (#{objectKey}, #{originalName}, #{contentType}, #{size}, #{sha256})
+    </insert>
+
+    <insert id="insertVersion" parameterType="com.hrplatform.archive.ArchiveVersion" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO archive_version (document_id, version_no, file_object_id, original_name, content_type, byte_size,
+                                    sha256, status, is_current, created_at, created_by, change_reason)
+        VALUES (#{documentId}, #{versionNo}, #{fileObjectId}, #{originalName}, #{contentType}, #{size}, #{sha256},
+                #{status}, #{isCurrent}, #{createdAt}, #{createdBy}, #{changeReason})
+    </insert>
+
+    <update id="clearCurrent">
+        UPDATE archive_version SET is_current = FALSE WHERE document_id = #{documentId} AND is_current = TRUE
+    </update>
+
+    <select id="findVersionByIdWithScope" resultMap="VersionMap">
+        SELECT v.id, v.document_id, v.version_no, v.file_object_id, v.original_name, v.content_type, v.byte_size,
+               v.sha256, v.status, v.is_current, v.created_at, v.created_by, v.change_reason,
+               d.employee_id
+        FROM archive_version v JOIN archive_document d ON d.id = v.document_id
+        JOIN employee e ON e.id = d.employee_id
+        WHERE v.id = #{versionId}
+        <choose>
+            <when test="scopeType == 'ALL'">AND 1 = 1</when>
+            <when test="scopeType == 'DEPARTMENT'">AND e.department_id = #{departmentId}</when>
+            <when test="scopeType == 'EMPLOYEE'">AND e.id = #{employeeId}</when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+        LIMIT 1
+    </select>
+
+    <select id="findObjectKeyByVersionId" resultType="string">
+        SELECT f.object_key FROM file_object f JOIN archive_version v ON v.file_object_id = f.id
+        WHERE v.id = #{versionId}
+    </select>
+</mapper>
