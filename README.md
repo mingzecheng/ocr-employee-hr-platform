@@ -28,7 +28,7 @@ cd web && npm ci && npm run dev
 ```bash
 JAVA_HOME=$(/usr/libexec/java_home -v 17) mvn -f server/pom.xml test
 cd web && npm test -- --run && npm run build
-cd ../ocr-service && OCR_ENGINE=mock pytest -q
+cd ../ocr-service && pytest -q
 cd .. && bash scripts/verify-platform.sh
 ```
 
