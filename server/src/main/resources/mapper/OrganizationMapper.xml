@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hrplatform.organization.OrganizationMapper">
+    <resultMap id="DepartmentMap" type="com.hrplatform.organization.DepartmentNode">
+        <id property="id" column="id" />
+        <result property="code" column="code" />
+        <result property="name" column="name" />
+        <result property="parentId" column="parent_id" />
+    </resultMap>
+
+    <select id="listEnabledDepartments" resultMap="DepartmentMap">
+        SELECT id, code, name, parent_id
+        FROM org_department
+        WHERE enabled = 1
+        ORDER BY sort_order, id
+    </select>
+</mapper>
