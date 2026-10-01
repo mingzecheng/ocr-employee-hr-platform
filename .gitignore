@@ -1,0 +1,33 @@
+# Local secrets and environment files
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# Java / Maven
+**/target/
+**/.idea/
+**/*.iml
+
+# Node / Vue
+**/node_modules/
+**/dist/
+**/.vite/
+
+# Python / OCR runtime
+**/.venv/
+**/__pycache__/
+**/.pytest_cache/
+**/*.py[cod]
+ocr-service/data/
+
+# Local databases, logs, and generated output
+**/*.sqlite3
+**/*.log
+output/
+.playwright-cli/
+
+# OS metadata
+.DS_Store
