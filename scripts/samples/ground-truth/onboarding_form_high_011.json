@@ -1,0 +1,25 @@
+{
+  "sample_id": "onboarding_form_high_011",
+  "layout": "onboarding_form",
+  "degradation": {
+    "clarity": "high",
+    "rotate_deg": 0,
+    "shadow": false,
+    "occlusion": false,
+    "occluded_field": null
+  },
+  "fields": {
+    "name": "赵六丁",
+    "employee_id": "EMP-004",
+    "department": "人力资源部",
+    "position": "软件工程师",
+    "phone": "13600136000",
+    "email": "zhaoliuding@example.test",
+    "education": "本科",
+    "hire_date": "2024-07-01"
+  },
+  "source": "synthetic",
+  "image_file": "png/onboarding_form_high_011.png",
+  "content_type": "image/png",
+  "hash": "decd02b1bf192fce7aeac7b217f038eda7b698137f78a42128445868a3490c2b"
+}

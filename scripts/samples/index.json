@@ -1,0 +1,343 @@
+{
+  "seed": 20261013,
+  "sample_count": 36,
+  "layouts": [
+    "idcard_front",
+    "onboarding_form",
+    "resume_summary",
+    "contract_first_page"
+  ],
+  "clarities": [
+    "high",
+    "medium",
+    "low"
+  ],
+  "personas_per_layout_per_clarity": 3,
+  "desensitization_note": "All names, ID numbers, phone numbers and emails are fixed synthetic test values; no real personal information is used.",
+  "samples": [
+    {
+      "sample_id": "idcard_front_high_001",
+      "layout": "idcard_front",
+      "clarity": "high",
+      "rotate_deg": 0,
+      "shadow": false,
+      "occlusion": true,
+      "fields": 6
+    },
+    {
+      "sample_id": "idcard_front_high_002",
+      "layout": "idcard_front",
+      "clarity": "high",
+      "rotate_deg": 0,
+      "shadow": false,
+      "occlusion": false,
+      "fields": 6
+    },
+    {
+      "sample_id": "idcard_front_high_003",
+      "layout": "idcard_front",
+      "clarity": "high",
+      "rotate_deg": 0,
+      "shadow": false,
+      "occlusion": true,
+      "fields": 6
+    },
+    {
+      "sample_id": "idcard_front_medium_004",
+      "layout": "idcard_front",
+      "clarity": "medium",
+      "rotate_deg": 10,
+      "shadow": false,
+      "occlusion": false,
+      "fields": 6
+    },
+    {
+      "sample_id": "idcard_front_medium_005",
+      "layout": "idcard_front",
+      "clarity": "medium",
+      "rotate_deg": 0,
+      "shadow": false,
+      "occlusion": false,
+      "fields": 6
+    },
+    {
+      "sample_id": "idcard_front_medium_006",
+      "layout": "idcard_front",
+      "clarity": "medium",
+      "rotate_deg": 0,
+      "shadow": true,
+      "occlusion": false,
+      "fields": 6
+    },
+    {
+      "sample_id": "idcard_front_low_007",
+      "layout": "idcard_front",
+      "clarity": "low",
+      "rotate_deg": 0,
+      "shadow": false,
+      "occlusion": true,
+      "fields": 6
+    },
+    {
+      "sample_id": "idcard_front_low_008",
+      "layout": "idcard_front",
+      "clarity": "low",
+      "rotate_deg": 0,
+      "shadow": false,
+      "occlusion": true,
+      "fields": 6
+    },
+    {
+      "sample_id": "idcard_front_low_009",
+      "layout": "idcard_front",
+      "clarity": "low",
+      "rotate_deg": 0,
+      "shadow": false,
+      "occlusion": false,
+      "fields": 6
+    },
+    {
+      "sample_id": "onboarding_form_high_010",
+      "layout": "onboarding_form",
+      "clarity": "high",
+      "rotate_deg": 0,
+      "shadow": false,
+      "occlusion": true,
+      "fields": 8
+    },
+    {
+      "sample_id": "onboarding_form_high_011",
+      "layout": "onboarding_form",
+      "clarity": "high",
+      "rotate_deg": 0,
+      "shadow": false,
+      "occlusion": false,
+      "fields": 8
+    },
+    {
+      "sample_id": "onboarding_form_high_012",
+      "layout": "onboarding_form",
+      "clarity": "high",
+      "rotate_deg": 0,
+      "shadow": false,
+      "occlusion": false,
+      "fields": 8
+    },
+    {
+      "sample_id": "onboarding_form_medium_013",
+      "layout": "onboarding_form",
+      "clarity": "medium",
+      "rotate_deg": 0,
+      "shadow": false,
+      "occlusion": true,
+      "fields": 8
+    },
+    {
+      "sample_id": "onboarding_form_medium_014",
+      "layout": "onboarding_form",
+      "clarity": "medium",
+      "rotate_deg": 0,
+      "shadow": false,
+      "occlusion": false,
+      "fields": 8
+    },
+    {
+      "sample_id": "onboarding_form_medium_015",
+      "layout": "onboarding_form",
+      "clarity": "medium",
+      "rotate_deg": 0,
+      "shadow": false,
+      "occlusion": true,
+      "fields": 8
+    },
+    {
+      "sample_id": "onboarding_form_low_016",
+      "layout": "onboarding_form",
+      "clarity": "low",
+      "rotate_deg": 0,
+      "shadow": false,
+      "occlusion": false,
+      "fields": 8
+    },
+    {
+      "sample_id": "onboarding_form_low_017",
+      "layout": "onboarding_form",
+      "clarity": "low",
+      "rotate_deg": 0,
+      "shadow": true,
+      "occlusion": false,
+      "fields": 8
+    },
+    {
+      "sample_id": "onboarding_form_low_018",
+      "layout": "onboarding_form",
+      "clarity": "low",
+      "rotate_deg": 0,
+      "shadow": true,
+      "occlusion": false,
+      "fields": 8
+    },
+    {
+      "sample_id": "resume_summary_high_019",
+      "layout": "resume_summary",
+      "clarity": "high",
+      "rotate_deg": 0,
+      "shadow": false,
+      "occlusion": false,
+      "fields": 5
+    },
+    {
+      "sample_id": "resume_summary_high_020",
+      "layout": "resume_summary",
+      "clarity": "high",
+      "rotate_deg": 0,
+      "shadow": false,
+      "occlusion": false,
+      "fields": 5
+    },
+    {
+      "sample_id": "resume_summary_high_021",
+      "layout": "resume_summary",
+      "clarity": "high",
+      "rotate_deg": 0,
+      "shadow": false,
+      "occlusion": false,
+      "fields": 5
+    },
+    {
+      "sample_id": "resume_summary_medium_022",
+      "layout": "resume_summary",
+      "clarity": "medium",
+      "rotate_deg": 0,
+      "shadow": false,
+      "occlusion": false,
+      "fields": 5
+    },
+    {
+      "sample_id": "resume_summary_medium_023",
+      "layout": "resume_summary",
+      "clarity": "medium",
+      "rotate_deg": 0,
+      "shadow": false,
+      "occlusion": false,
+      "fields": 5
+    },
+    {
+      "sample_id": "resume_summary_medium_024",
+      "layout": "resume_summary",
+      "clarity": "medium",
+      "rotate_deg": 0,
+      "shadow": false,
+      "occlusion": true,
+      "fields": 5
+    },
+    {
+      "sample_id": "resume_summary_low_025",
+      "layout": "resume_summary",
+      "clarity": "low",
+      "rotate_deg": 10,
+      "shadow": false,
+      "occlusion": false,
+      "fields": 5
+    },
+    {
+      "sample_id": "resume_summary_low_026",
+      "layout": "resume_summary",
+      "clarity": "low",
+      "rotate_deg": 0,
+      "shadow": true,
+      "occlusion": false,
+      "fields": 5
+    },
+    {
+      "sample_id": "resume_summary_low_027",
+      "layout": "resume_summary",
+      "clarity": "low",
+      "rotate_deg": 10,
+      "shadow": false,
+      "occlusion": false,
+      "fields": 5
+    },
+    {
+      "sample_id": "contract_first_page_high_028",
+      "layout": "contract_first_page",
+      "clarity": "high",
+      "rotate_deg": 0,
+      "shadow": false,
+      "occlusion": true,
+      "fields": 6
+    },
+    {
+      "sample_id": "contract_first_page_high_029",
+      "layout": "contract_first_page",
+      "clarity": "high",
+      "rotate_deg": 0,
+      "shadow": true,
+      "occlusion": false,
+      "fields": 6
+    },
+    {
+      "sample_id": "contract_first_page_high_030",
+      "layout": "contract_first_page",
+      "clarity": "high",
+      "rotate_deg": 0,
+      "shadow": true,
+      "occlusion": false,
+      "fields": 6
+    },
+    {
+      "sample_id": "contract_first_page_medium_031",
+      "layout": "contract_first_page",
+      "clarity": "medium",
+      "rotate_deg": 0,
+      "shadow": true,
+      "occlusion": false,
+      "fields": 6
+    },
+    {
+      "sample_id": "contract_first_page_medium_032",
+      "layout": "contract_first_page",
+      "clarity": "medium",
+      "rotate_deg": 0,
+      "shadow": true,
+      "occlusion": false,
+      "fields": 6
+    },
+    {
+      "sample_id": "contract_first_page_medium_033",
+      "layout": "contract_first_page",
+      "clarity": "medium",
+      "rotate_deg": 0,
+      "shadow": true,
+      "occlusion": false,
+      "fields": 6
+    },
+    {
+      "sample_id": "contract_first_page_low_034",
+      "layout": "contract_first_page",
+      "clarity": "low",
+      "rotate_deg": 0,
+      "shadow": false,
+      "occlusion": false,
+      "fields": 6
+    },
+    {
+      "sample_id": "contract_first_page_low_035",
+      "layout": "contract_first_page",
+      "clarity": "low",
+      "rotate_deg": -10,
+      "shadow": false,
+      "occlusion": false,
+      "fields": 6
+    },
+    {
+      "sample_id": "contract_first_page_low_036",
+      "layout": "contract_first_page",
+      "clarity": "low",
+      "rotate_deg": 0,
+      "shadow": false,
+      "occlusion": false,
+      "fields": 6
+    }
+  ]
+}

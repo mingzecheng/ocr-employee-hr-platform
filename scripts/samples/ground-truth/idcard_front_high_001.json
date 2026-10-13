@@ -1,0 +1,23 @@
+{
+  "sample_id": "idcard_front_high_001",
+  "layout": "idcard_front",
+  "degradation": {
+    "clarity": "high",
+    "rotate_deg": 0,
+    "shadow": false,
+    "occlusion": true,
+    "occluded_field": "birth_date"
+  },
+  "fields": {
+    "name": "李四乙",
+    "gender": "女",
+    "ethnicity": "汉",
+    "birth_date": "1985年05月05日",
+    "address": "上海市徐汇区样板路2号",
+    "id_number": "310104198505056789"
+  },
+  "source": "synthetic",
+  "image_file": "png/idcard_front_high_001.png",
+  "content_type": "image/png",
+  "hash": "269d28f0b5abaae89a1e30d8a842b56992eb7727a2035011762270311a3e2667"
+}

@@ -1,0 +1,23 @@
+{
+  "sample_id": "idcard_front_low_008",
+  "layout": "idcard_front",
+  "degradation": {
+    "clarity": "low",
+    "rotate_deg": 0,
+    "shadow": false,
+    "occlusion": true,
+    "occluded_field": "name"
+  },
+  "fields": {
+    "name": "王五福",
+    "gender": "男",
+    "ethnicity": "回",
+    "birth_date": "1992年03月03日",
+    "address": "深圳市南山区示范道3号",
+    "id_number": "440305199203034567"
+  },
+  "source": "synthetic",
+  "image_file": "png/idcard_front_low_008.jpg",
+  "content_type": "image/jpeg",
+  "hash": "7de5a6704c6fe449b4986fd72688e5075e03f4cf4ee34884a5d5c448179fd1d0"
+}

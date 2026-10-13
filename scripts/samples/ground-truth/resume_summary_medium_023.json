@@ -1,0 +1,22 @@
+{
+  "sample_id": "resume_summary_medium_023",
+  "layout": "resume_summary",
+  "degradation": {
+    "clarity": "medium",
+    "rotate_deg": 0,
+    "shadow": false,
+    "occlusion": false,
+    "occluded_field": null
+  },
+  "fields": {
+    "name": "赵六丁",
+    "school": "示范大学",
+    "major": "计算机科学与技术",
+    "years": "5年",
+    "emergency_contact": "周八 13600136000"
+  },
+  "source": "synthetic",
+  "image_file": "png/resume_summary_medium_023.jpg",
+  "content_type": "image/jpeg",
+  "hash": "d53f99673c3d86fcf950da02bac20c8dd013a65223b981a0c8a7a9912532c74b"
+}

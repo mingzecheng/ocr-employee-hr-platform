@@ -1,0 +1,23 @@
+{
+  "sample_id": "contract_first_page_medium_033",
+  "layout": "contract_first_page",
+  "degradation": {
+    "clarity": "medium",
+    "rotate_deg": 0,
+    "shadow": true,
+    "occlusion": false,
+    "occluded_field": null
+  },
+  "fields": {
+    "party_a": "示范企业有限公司",
+    "party_b": "王五福",
+    "term": "2024-07-01 至 2027-06-30",
+    "position": "软件工程师",
+    "salary": "人民币12000元/月",
+    "sign_date": "2024-07-01"
+  },
+  "source": "synthetic",
+  "image_file": "png/contract_first_page_medium_033.jpg",
+  "content_type": "image/jpeg",
+  "hash": "eadfcf33fab7a879ed02d0ae8f9fc62e01d34fe4b76e46a59636cc82731579b9"
+}

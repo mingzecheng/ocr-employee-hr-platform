@@ -1,0 +1,22 @@
+{
+  "sample_id": "resume_summary_medium_024",
+  "layout": "resume_summary",
+  "degradation": {
+    "clarity": "medium",
+    "rotate_deg": 0,
+    "shadow": false,
+    "occlusion": true,
+    "occluded_field": "emergency_contact"
+  },
+  "fields": {
+    "name": "张三甲",
+    "school": "示范大学",
+    "major": "计算机科学与技术",
+    "years": "5年",
+    "emergency_contact": "赵五 13900139000"
+  },
+  "source": "synthetic",
+  "image_file": "png/resume_summary_medium_024.jpg",
+  "content_type": "image/jpeg",
+  "hash": "6a1d1c8804ea421a554640b1fef92cd48475da26fd0449e3a29aab391fc34f4f"
+}

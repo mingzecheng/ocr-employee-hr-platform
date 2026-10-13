@@ -1,0 +1,22 @@
+{
+  "sample_id": "resume_summary_low_025",
+  "layout": "resume_summary",
+  "degradation": {
+    "clarity": "low",
+    "rotate_deg": 10,
+    "shadow": false,
+    "occlusion": false,
+    "occluded_field": null
+  },
+  "fields": {
+    "name": "王五福",
+    "school": "示范大学",
+    "major": "计算机科学与技术",
+    "years": "5年",
+    "emergency_contact": "孙七 13700137000"
+  },
+  "source": "synthetic",
+  "image_file": "png/resume_summary_low_025.jpg",
+  "content_type": "image/jpeg",
+  "hash": "f54464331221e1747428cc1b25e8a805642a9df5bb5b6d92b22fce01532e2f88"
+}

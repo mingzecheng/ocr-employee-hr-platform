@@ -1,0 +1,23 @@
+{
+  "sample_id": "contract_first_page_medium_032",
+  "layout": "contract_first_page",
+  "degradation": {
+    "clarity": "medium",
+    "rotate_deg": 0,
+    "shadow": true,
+    "occlusion": false,
+    "occluded_field": null
+  },
+  "fields": {
+    "party_a": "示范企业有限公司",
+    "party_b": "李四乙",
+    "term": "2024-07-01 至 2027-06-30",
+    "position": "软件工程师",
+    "salary": "人民币12000元/月",
+    "sign_date": "2024-07-01"
+  },
+  "source": "synthetic",
+  "image_file": "png/contract_first_page_medium_032.jpg",
+  "content_type": "image/jpeg",
+  "hash": "ffefc58e14c1734f7f9ecfd985ad29dfa25dbd6bde925b8fe92266fb24941961"
+}

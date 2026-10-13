@@ -1,0 +1,23 @@
+{
+  "sample_id": "contract_first_page_low_034",
+  "layout": "contract_first_page",
+  "degradation": {
+    "clarity": "low",
+    "rotate_deg": 0,
+    "shadow": false,
+    "occlusion": false,
+    "occluded_field": null
+  },
+  "fields": {
+    "party_a": "示范企业有限公司",
+    "party_b": "张三甲",
+    "term": "2024-07-01 至 2027-06-30",
+    "position": "软件工程师",
+    "salary": "人民币12000元/月",
+    "sign_date": "2024-07-01"
+  },
+  "source": "synthetic",
+  "image_file": "png/contract_first_page_low_034.jpg",
+  "content_type": "image/jpeg",
+  "hash": "a1299656c3a171a25f038a1c0e65cabdd90cc8c5a411f328454c9ef970593cf9"
+}

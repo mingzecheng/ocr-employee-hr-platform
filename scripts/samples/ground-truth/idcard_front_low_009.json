@@ -1,0 +1,23 @@
+{
+  "sample_id": "idcard_front_low_009",
+  "layout": "idcard_front",
+  "degradation": {
+    "clarity": "low",
+    "rotate_deg": 0,
+    "shadow": false,
+    "occlusion": false,
+    "occluded_field": null
+  },
+  "fields": {
+    "name": "赵六丁",
+    "gender": "女",
+    "ethnicity": "汉",
+    "birth_date": "1994年12月12日",
+    "address": "南京市鼓楼区样板巷4号",
+    "id_number": "320106199412128901"
+  },
+  "source": "synthetic",
+  "image_file": "png/idcard_front_low_009.jpg",
+  "content_type": "image/jpeg",
+  "hash": "5c9b6cbfbcf01fc4f0e14e03cdc7b1bbfbf88b8990e4f805a4715ac94e231bf5"
+}
