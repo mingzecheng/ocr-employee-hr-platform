@@ -48,4 +48,14 @@
                created_at, client_ip, user_agent, request_method, request_uri, session_id
         FROM operation_log WHERE id = #{id}
     </select>
+    <select id="listLoginLogs" resultMap="LogMap">
+        SELECT id, operator_id, action, object_type, object_id, before_summary, after_summary, result, trace_id,
+               created_at, client_ip, user_agent, request_method, request_uri, session_id
+        FROM operation_log
+        WHERE action IN ('LOGIN', 'LOGOUT', 'REFRESH')
+        ORDER BY created_at DESC, id DESC LIMIT #{offset}, #{limit}
+    </select>
+    <select id="countLoginLogs" resultType="long">
+        SELECT COUNT(*) FROM operation_log WHERE action IN ('LOGIN', 'LOGOUT', 'REFRESH')
+    </select>
 </mapper>

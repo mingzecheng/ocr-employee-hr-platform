@@ -19,4 +19,9 @@ public interface OperationLogMapper {
                @Param("fromInclusive") LocalDateTime fromInclusive,
                @Param("toExclusive") LocalDateTime toExclusive);
     OperationLogRecord findById(@Param("id") Long id);
+
+    /** 登录相关日志（LOGIN / LOGOUT / REFRESH）分页，按时间倒序。 */
+    List<OperationLogRecord> listLoginLogs(@Param("offset") int offset, @Param("limit") int limit);
+
+    long countLoginLogs();
 }
