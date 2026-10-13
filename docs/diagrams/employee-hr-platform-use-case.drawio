@@ -1,0 +1,132 @@
+<mxfile host="app.diagrams.net" modified="2026-10-10T00:00:00.000Z" agent="Codex" version="24.7.17">
+  <diagram id="employee-hr-platform-use-case-20261010" name="企业员工档案与人事流程管理平台用例图">
+    <mxGraphModel dx="1800" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1200" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title" value="企业员工档案与人事流程管理平台用例图" style="text;html=1;align=center;verticalAlign=middle;fontSize=22;fontStyle=1;fontColor=#1F2937" vertex="1" parent="1">
+          <mxGeometry x="560" y="18" width="620" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="system-boundary" value="企业员工档案与人事流程管理平台" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#335C81;strokeWidth=2;fillColor=none;fontSize=15;fontStyle=1;verticalAlign=top;align=left;spacingTop=10;spacingLeft=14;dashed=1" vertex="1" parent="1">
+          <mxGeometry x="260" y="70" width="1220" height="1060" as="geometry" />
+        </mxCell>
+
+        <mxCell id="group-auth" value="认证与权限" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#7B8794;strokeWidth=1;fillColor=#F8FAFC;fontSize=12;fontStyle=1;verticalAlign=top;align=left;spacingTop=8;spacingLeft=10;dashed=1" vertex="1" parent="1">
+          <mxGeometry x="285" y="110" width="300" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="group-org" value="员工与组织" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#5E8C61;strokeWidth=1;fillColor=#F6FBF7;fontSize=12;fontStyle=1;verticalAlign=top;align=left;spacingTop=8;spacingLeft=10;dashed=1" vertex="1" parent="1">
+          <mxGeometry x="610" y="110" width="350" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="group-ocr" value="档案与 OCR" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#4F81BD;strokeWidth=1;fillColor=#F4F8FF;fontSize=12;fontStyle=1;verticalAlign=top;align=left;spacingTop=8;spacingLeft=10;dashed=1" vertex="1" parent="1">
+          <mxGeometry x="985" y="110" width="465" height="380" as="geometry" />
+        </mxCell>
+        <mxCell id="group-workflow" value="人事流程审批" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#5B9B6B;strokeWidth=1;fillColor=#F5FBF6;fontSize=12;fontStyle=1;verticalAlign=top;align=left;spacingTop=8;spacingLeft=10;dashed=1" vertex="1" parent="1">
+          <mxGeometry x="285" y="345" width="675" height="390" as="geometry" />
+        </mxCell>
+        <mxCell id="group-access" value="档案授权与盘点" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#C28B2C;strokeWidth=1;fillColor=#FFFBF2;fontSize=12;fontStyle=1;verticalAlign=top;align=left;spacingTop=8;spacingLeft=10;dashed=1" vertex="1" parent="1">
+          <mxGeometry x="985" y="515" width="465" height="440" as="geometry" />
+        </mxCell>
+        <mxCell id="group-ops" value="合同、统计与审计" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#8B5FBF;strokeWidth=1;fillColor=#FBF8FF;fontSize=12;fontStyle=1;verticalAlign=top;align=left;spacingTop=8;spacingLeft=10;dashed=1" vertex="1" parent="1">
+          <mxGeometry x="285" y="770" width="675" height="290" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uc-login" value="登录 / 退出" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#335C81;fontSize=11" vertex="1" parent="1"><mxGeometry x="305" y="160" width="120" height="48" as="geometry" /></mxCell>
+        <mxCell id="uc-scope" value="身份认证与&lt;br&gt;数据范围校验" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#335C81;fontSize=11" vertex="1" parent="1"><mxGeometry x="445" y="150" width="125" height="68" as="geometry" /></mxCell>
+        <mxCell id="uc-accounts" value="管理账号与角色" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#335C81;fontSize=11" vertex="1" parent="1"><mxGeometry x="305" y="240" width="130" height="48" as="geometry" /></mxCell>
+        <mxCell id="uc-workspace-select" value="选择已授权工作台" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#335C81;fontSize=11" vertex="1" parent="1"><mxGeometry x="445" y="240" width="130" height="48" as="geometry" /></mxCell>
+
+        <mxCell id="uc-directory" value="查看员工目录&lt;br&gt;与本人信息" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#5E8C61;fontSize=11" vertex="1" parent="1"><mxGeometry x="635" y="155" width="145" height="62" as="geometry" /></mxCell>
+        <mxCell id="uc-maintain-org" value="维护部门与&lt;br&gt;岗位结构" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#5E8C61;fontSize=11" vertex="1" parent="1"><mxGeometry x="800" y="145" width="140" height="62" as="geometry" /></mxCell>
+        <mxCell id="uc-history" value="记录员工状态&lt;br&gt;变更历史" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#5E8C61;fontSize=11" vertex="1" parent="1"><mxGeometry x="625" y="235" width="145" height="48" as="geometry" /></mxCell>
+        <mxCell id="uc-maintain-employee" value="维护员工&lt;br&gt;主数据" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#5E8C61;fontSize=11" vertex="1" parent="1"><mxGeometry x="790" y="225" width="140" height="58" as="geometry" /></mxCell>
+
+        <mxCell id="uc-upload" value="上传档案材料&lt;br&gt;建立版本" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#4F81BD;fontSize=11" vertex="1" parent="1"><mxGeometry x="1010" y="160" width="145" height="62" as="geometry" /></mxCell>
+        <mxCell id="uc-view-archive" value="查看档案版本&lt;br&gt;与原图" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#4F81BD;fontSize=11" vertex="1" parent="1"><mxGeometry x="1195" y="155" width="145" height="62" as="geometry" /></mxCell>
+        <mxCell id="uc-ocr" value="触发 OCR 识别&lt;br&gt;版面预处理" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#4F81BD;fontSize=11" vertex="1" parent="1"><mxGeometry x="1030" y="270" width="150" height="62" as="geometry" /></mxCell>
+        <mxCell id="uc-map" value="字段映射与&lt;br&gt;格式校验" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#4F81BD;fontSize=11" vertex="1" parent="1"><mxGeometry x="1210" y="270" width="150" height="62" as="geometry" /></mxCell>
+        <mxCell id="uc-view-ocr" value="查看 OCR 结果" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#4F81BD;fontSize=11" vertex="1" parent="1"><mxGeometry x="1030" y="355" width="150" height="48" as="geometry" /></mxCell>
+        <mxCell id="uc-review" value="低置信度字段&lt;br&gt;人工复核修订" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#4F81BD;fontSize=11" vertex="1" parent="1"><mxGeometry x="1010" y="420" width="150" height="55" as="geometry" /></mxCell>
+        <mxCell id="uc-retry" value="识别失败记录&lt;br&gt;重新识别" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFF8F0;strokeColor=#C94C4C;fontSize=11" vertex="1" parent="1"><mxGeometry x="1200" y="420" width="150" height="55" as="geometry" /></mxCell>
+
+        <mxCell id="uc-request" value="发起入职、调动、&lt;br&gt;请假或离职申请" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#5B9B6B;fontSize=11" vertex="1" parent="1"><mxGeometry x="320" y="405" width="170" height="62" as="geometry" /></mxCell>
+        <mxCell id="uc-approval" value="人事申请审批&lt;br&gt;部门审批与 HR 复核" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#5B9B6B;fontSize=11" vertex="1" parent="1"><mxGeometry x="555" y="400" width="150" height="62" as="geometry" /></mxCell>
+        <mxCell id="uc-offboarding-review" value="离职申请 HR&lt;br&gt;最终复核" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFF8F0;strokeColor=#C28B2C;fontSize=11" vertex="1" parent="1"><mxGeometry x="750" y="457" width="150" height="48" as="geometry" /></mxCell>
+        <mxCell id="uc-handover" value="确认离职交接" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFF8F0;strokeColor=#C28B2C;fontSize=11" vertex="1" parent="1"><mxGeometry x="750" y="405" width="140" height="48" as="geometry" /></mxCell>
+        <mxCell id="uc-timeline" value="查看申请详情&lt;br&gt;与审批时间线" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#5B9B6B;fontSize=11" vertex="1" parent="1"><mxGeometry x="320" y="515" width="170" height="62" as="geometry" /></mxCell>
+        <mxCell id="uc-todo" value="查看统一待办&lt;br&gt;与详情动作" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#5B9B6B;fontSize=11" vertex="1" parent="1"><mxGeometry x="555" y="515" width="150" height="62" as="geometry" /></mxCell>
+        <mxCell id="uc-effective" value="生效日执行员工&lt;br&gt;状态变更" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F1FAF3;strokeColor=#5B9B6B;fontSize=11" vertex="1" parent="1"><mxGeometry x="760" y="515" width="140" height="62" as="geometry" /></mxCell>
+        <mxCell id="uc-approval-log" value="审批意见与&lt;br&gt;状态留痕" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F1FAF3;strokeColor=#5B9B6B;fontSize=11" vertex="1" parent="1"><mxGeometry x="435" y="630" width="170" height="62" as="geometry" /></mxCell>
+
+        <mxCell id="uc-access-request" value="申请档案访问&lt;br&gt;或借用" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C28B2C;fontSize=11" vertex="1" parent="1"><mxGeometry x="1010" y="560" width="150" height="62" as="geometry" /></mxCell>
+        <mxCell id="uc-access-approve" value="档案授权审批" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C28B2C;fontSize=11" vertex="1" parent="1"><mxGeometry x="1200" y="560" width="150" height="48" as="geometry" /></mxCell>
+        <mxCell id="uc-use-return" value="开始使用、归还&lt;br&gt;或移交档案" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C28B2C;fontSize=11" vertex="1" parent="1"><mxGeometry x="1010" y="665" width="150" height="62" as="geometry" /></mxCell>
+        <mxCell id="uc-abnormal" value="异常归还处理&lt;br&gt;与关闭" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFF8F0;strokeColor=#C94C4C;fontSize=11" vertex="1" parent="1"><mxGeometry x="1200" y="665" width="150" height="62" as="geometry" /></mxCell>
+        <mxCell id="uc-inventory" value="创建与执行盘点" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C28B2C;fontSize=11" vertex="1" parent="1"><mxGeometry x="1010" y="780" width="150" height="54" as="geometry" /></mxCell>
+        <mxCell id="uc-inventory-resolve" value="处理盘点异常" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFF8F0;strokeColor=#C28B2C;fontSize=11" vertex="1" parent="1"><mxGeometry x="1195" y="780" width="145" height="54" as="geometry" /></mxCell>
+        <mxCell id="uc-inventory-complete" value="完成盘点" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F1FAF3;strokeColor=#5B9B6B;fontSize=11" vertex="1" parent="1"><mxGeometry x="1100" y="865" width="140" height="48" as="geometry" /></mxCell>
+        <mxCell id="uc-inventory-check" value="校验所有异常&lt;br&gt;均已关闭" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C28B2C;fontSize=11" vertex="1" parent="1"><mxGeometry x="1275" y="865" width="145" height="48" as="geometry" /></mxCell>
+
+        <mxCell id="uc-view-contract" value="查看范围内合同" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#8B5FBF;fontSize=11" vertex="1" parent="1"><mxGeometry x="305" y="805" width="160" height="50" as="geometry" /></mxCell>
+        <mxCell id="uc-contract" value="维护合同台账&lt;br&gt;续签或不续签" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#8B5FBF;fontSize=11" vertex="1" parent="1"><mxGeometry x="315" y="875" width="170" height="62" as="geometry" /></mxCell>
+        <mxCell id="uc-statistics" value="查看统计看板" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#8B5FBF;fontSize=11" vertex="1" parent="1"><mxGeometry x="555" y="825" width="150" height="48" as="geometry" /></mxCell>
+        <mxCell id="uc-audit" value="查看操作日志" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#8B5FBF;fontSize=11" vertex="1" parent="1"><mxGeometry x="760" y="825" width="140" height="48" as="geometry" /></mxCell>
+        <mxCell id="uc-record" value="记录版本、审批、授权、&lt;br&gt;归还和异常操作" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FBF8FF;strokeColor=#8B5FBF;fontSize=11" vertex="1" parent="1"><mxGeometry x="440" y="950" width="220" height="62" as="geometry" /></mxCell>
+
+        <mxCell id="actor-employee" value="员工 /&lt;br&gt;业务经办人" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;fontSize=11;strokeColor=#335C81;fillColor=#FFFFFF" vertex="1" parent="1"><mxGeometry x="70" y="265" width="110" height="90" as="geometry" /></mxCell>
+        <mxCell id="actor-manager" value="部门负责人" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;fontSize=11;strokeColor=#5E8C61;fillColor=#FFFFFF" vertex="1" parent="1"><mxGeometry x="70" y="470" width="110" height="90" as="geometry" /></mxCell>
+        <mxCell id="actor-hr" value="人事管理员" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;fontSize=11;strokeColor=#C28B2C;fillColor=#FFFFFF" vertex="1" parent="1"><mxGeometry x="70" y="705" width="110" height="90" as="geometry" /></mxCell>
+        <mxCell id="actor-admin" value="系统管理员" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;fontSize=11;strokeColor=#8B5FBF;fillColor=#FFFFFF" vertex="1" parent="1"><mxGeometry x="1510" y="460" width="110" height="90" as="geometry" /></mxCell>
+        <mxCell id="actor-ocr" value="OCR 引擎服务" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;fontSize=11;strokeColor=#4F81BD;fillColor=#FFFFFF" vertex="1" parent="1"><mxGeometry x="1510" y="170" width="110" height="90" as="geometry" /></mxCell>
+        <mxCell id="actor-minio" value="MinIO 对象存储" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;fontSize=11;strokeColor=#4F81BD;fillColor=#FFFFFF" vertex="1" parent="1"><mxGeometry x="1510" y="285" width="110" height="90" as="geometry" /></mxCell>
+
+        <mxCell id="e-emp-login" value="" style="endArrow=none;html=1;strokeColor=#335C81" edge="1" parent="1" source="actor-employee" target="uc-login"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-emp-workspace" value="多角色" style="endArrow=none;html=1;strokeColor=#335C81;fontSize=9" edge="1" parent="1" source="actor-employee" target="uc-workspace-select"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-emp-directory" value="" style="endArrow=none;html=1;strokeColor=#335C81" edge="1" parent="1" source="actor-employee" target="uc-directory"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-emp-ocr-view" value="本人授权范围" style="endArrow=none;html=1;strokeColor=#335C81;fontSize=9" edge="1" parent="1" source="actor-employee" target="uc-view-ocr"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-emp-request" value="" style="endArrow=none;html=1;strokeColor=#335C81" edge="1" parent="1" source="actor-employee" target="uc-request"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-emp-access" value="" style="endArrow=none;html=1;strokeColor=#335C81" edge="1" parent="1" source="actor-employee" target="uc-access-request"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-emp-todo" value="" style="endArrow=none;html=1;strokeColor=#335C81" edge="1" parent="1" source="actor-employee" target="uc-todo"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-emp-contract-view" value="" style="endArrow=none;html=1;strokeColor=#335C81" edge="1" parent="1" source="actor-employee" target="uc-view-contract"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-manager-approval" value="" style="endArrow=none;html=1;strokeColor=#5E8C61" edge="1" parent="1" source="actor-manager" target="uc-approval"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-manager-workspace" value="多角色" style="endArrow=none;html=1;strokeColor=#5E8C61;fontSize=9" edge="1" parent="1" source="actor-manager" target="uc-workspace-select"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-manager-directory" value="" style="endArrow=none;html=1;strokeColor=#5E8C61" edge="1" parent="1" source="actor-manager" target="uc-directory"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-manager-ocr-view" value="本部门范围" style="endArrow=none;html=1;strokeColor=#5E8C61;fontSize=9" edge="1" parent="1" source="actor-manager" target="uc-view-ocr"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-manager-inventory" value="" style="endArrow=none;html=1;strokeColor=#5E8C61" edge="1" parent="1" source="actor-manager" target="uc-inventory"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-manager-contract-view" value="" style="endArrow=none;html=1;strokeColor=#5E8C61" edge="1" parent="1" source="actor-manager" target="uc-view-contract"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-hr-maintain" value="" style="endArrow=none;html=1;strokeColor=#C28B2C" edge="1" parent="1" source="actor-hr" target="uc-maintain-org"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-hr-workspace" value="多角色" style="endArrow=none;html=1;strokeColor=#C28B2C;fontSize=9" edge="1" parent="1" source="actor-hr" target="uc-workspace-select"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-hr-employee" value="" style="endArrow=none;html=1;strokeColor=#C28B2C" edge="1" parent="1" source="actor-hr" target="uc-maintain-employee"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-hr-upload" value="" style="endArrow=none;html=1;strokeColor=#C28B2C" edge="1" parent="1" source="actor-hr" target="uc-upload"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-hr-ocr" value="" style="endArrow=none;html=1;strokeColor=#C28B2C" edge="1" parent="1" source="actor-hr" target="uc-ocr"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-hr-review" value="" style="endArrow=none;html=1;strokeColor=#C28B2C" edge="1" parent="1" source="actor-hr" target="uc-review"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-hr-offboarding" value="" style="endArrow=none;html=1;strokeColor=#C28B2C" edge="1" parent="1" source="actor-hr" target="uc-offboarding-review"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-hr-access" value="" style="endArrow=none;html=1;strokeColor=#C28B2C" edge="1" parent="1" source="actor-hr" target="uc-access-approve"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-hr-contract" value="" style="endArrow=none;html=1;strokeColor=#C28B2C" edge="1" parent="1" source="actor-hr" target="uc-contract"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-hr-contract-view" value="" style="endArrow=none;html=1;strokeColor=#C28B2C" edge="1" parent="1" source="actor-hr" target="uc-view-contract"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-hr-audit" value="" style="endArrow=none;html=1;strokeColor=#C28B2C" edge="1" parent="1" source="actor-hr" target="uc-audit"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-admin-accounts" value="" style="endArrow=none;html=1;strokeColor=#8B5FBF" edge="1" parent="1" source="actor-admin" target="uc-accounts"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-admin-workspace" value="多角色" style="endArrow=none;html=1;strokeColor=#8B5FBF;fontSize=9" edge="1" parent="1" source="actor-admin" target="uc-workspace-select"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-admin-org" value="" style="endArrow=none;html=1;strokeColor=#8B5FBF" edge="1" parent="1" source="actor-admin" target="uc-maintain-org"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-admin-statistics" value="" style="endArrow=none;html=1;strokeColor=#8B5FBF" edge="1" parent="1" source="actor-admin" target="uc-statistics"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-admin-audit" value="" style="endArrow=none;html=1;strokeColor=#8B5FBF" edge="1" parent="1" source="actor-admin" target="uc-audit"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-ocr" value="" style="endArrow=none;html=1;strokeColor=#4F81BD" edge="1" parent="1" source="actor-ocr" target="uc-ocr"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-minio-upload" value="" style="endArrow=none;html=1;strokeColor=#4F81BD" edge="1" parent="1" source="actor-minio" target="uc-upload"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-minio-view" value="" style="endArrow=none;html=1;strokeColor=#4F81BD" edge="1" parent="1" source="actor-minio" target="uc-view-archive"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="inc-request-approval" value="&amp;lt;&amp;lt;include&amp;gt;&amp;gt;" style="dashed=1;endArrow=open;html=1;strokeColor=#5B9B6B;fontSize=10;fontStyle=2" edge="1" parent="1" source="uc-request" target="uc-approval"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ext-workspace-selection" value="多角色账号" style="dashed=1;endArrow=open;html=1;strokeColor=#335C81;fontSize=9;fontStyle=2" edge="1" parent="1" source="uc-workspace-select" target="uc-login"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="inc-ocr-map" value="&amp;lt;&amp;lt;include&amp;gt;&amp;gt;" style="dashed=1;endArrow=open;html=1;strokeColor=#4F81BD;fontSize=10;fontStyle=2" edge="1" parent="1" source="uc-ocr" target="uc-map"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ext-ocr-review" value="&amp;lt;&amp;lt;extend&amp;gt;&amp;gt;" style="dashed=1;endArrow=open;html=1;strokeColor=#C28B2C;fontSize=10;fontStyle=2" edge="1" parent="1" source="uc-review" target="uc-view-ocr"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ext-ocr-retry" value="&amp;lt;&amp;lt;extend&amp;gt;&amp;gt;" style="dashed=1;endArrow=open;html=1;strokeColor=#C94C4C;fontSize=10;fontStyle=2" edge="1" parent="1" source="uc-retry" target="uc-ocr"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="inc-offboarding-handover" value="&amp;lt;&amp;lt;include&amp;gt;&amp;gt;" style="dashed=1;endArrow=open;html=1;strokeColor=#C28B2C;fontSize=10;fontStyle=2" edge="1" parent="1" source="uc-offboarding-review" target="uc-handover"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="inc-access-approval" value="&amp;lt;&amp;lt;include&amp;gt;&amp;gt;" style="dashed=1;endArrow=open;html=1;strokeColor=#C28B2C;fontSize=10;fontStyle=2" edge="1" parent="1" source="uc-access-request" target="uc-access-approve"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ext-abnormal" value="&amp;lt;&amp;lt;extend&amp;gt;&amp;gt;" style="dashed=1;endArrow=open;html=1;strokeColor=#C94C4C;fontSize=10;fontStyle=2" edge="1" parent="1" source="uc-abnormal" target="uc-use-return"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ext-inventory-resolve" value="&amp;lt;&amp;lt;extend&amp;gt;&amp;gt;" style="dashed=1;endArrow=open;html=1;strokeColor=#C28B2C;fontSize=10;fontStyle=2" edge="1" parent="1" source="uc-inventory-resolve" target="uc-inventory"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="inc-inventory-check" value="&amp;lt;&amp;lt;include&amp;gt;&amp;gt;" style="dashed=1;endArrow=open;html=1;strokeColor=#C28B2C;fontSize=10;fontStyle=2" edge="1" parent="1" source="uc-inventory-complete" target="uc-inventory-check"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="inc-all-log" value="&amp;lt;&amp;lt;include&amp;gt;&amp;gt;" style="dashed=1;endArrow=open;html=1;strokeColor=#8B5FBF;fontSize=10;fontStyle=2" edge="1" parent="1" source="uc-approval-log" target="uc-record"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="legend" value="实线：参与者关联　虚线：&amp;lt;&amp;lt;include&amp;gt;&amp;gt; / &amp;lt;&amp;lt;extend&amp;gt;&amp;gt;　所有受保护业务操作均经过服务端权限与数据范围校验" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontColor=#5B6573" vertex="1" parent="1"><mxGeometry x="285" y="1080" width="900" height="28" as="geometry" /></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
