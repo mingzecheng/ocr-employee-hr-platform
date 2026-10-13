@@ -6,10 +6,10 @@
 
 ## 安装依赖
 
-项目要求 Python 3.10 及以上。使用项目虚拟环境安装依赖：
+项目要求 Python 3.10 及以上。启动器在本机缓存目录建立独立运行环境，避免项目位于 iCloud Drive 等按需同步目录时，依赖文件尚未下载而使 Python 导入停滞：
 
 ```bash
-.venv/bin/python -m pip install -r requirements.txt
+python3.10 scripts/run_local.py --install-only
 ```
 
 已固定 CPU 运行时版本为 `paddlepaddle==3.3.0`，并使用 `paddleocr>=3.0,<4`。首次以 `OCR_ENGINE=paddle` 启动时，PaddleOCR 会下载所需中文模型并缓存到本机；后续启动会复用缓存。
@@ -17,9 +17,8 @@
 ## PyCharm 一键启动
 
 1. 用 PyCharm 打开 `ocr-service` 目录。
-2. 在 Python Interpreter 中选择项目内的 `.venv/bin/python`；依赖可从 `requirements.txt` 导入。
-3. 在右上角运行配置中选择 `Local OCR Service`。
-4. 点击绿色运行按钮，服务会自动执行 `app/main.py` 并监听 `127.0.0.1:8000`。
+2. 首次启动前，在终端运行 `python3.10 scripts/run_local.py --install-only`，准备本机缓存环境。
+3. 在右上角运行配置中选择 `Local OCR Service` 并点击运行。PyCharm 和启动器都会使用 `~/Library/Caches/hr-platform/ocr-service-venv`，服务以 PaddleOCR 监听 `127.0.0.1:8000`。
 
 运行配置已经保存在 `.idea/runConfigurations/Local_OCR_Service.xml`，打开项目后会自动出现在 PyCharm 的运行配置列表中。
 
@@ -30,10 +29,17 @@
 
 ## 接口示例
 
+除 `/health` 外，所有 `/api/ocr/*` 接口都要求 `X-OCR-Internal-Token`。本地默认值仅供开发环境使用；生产令牌由部署环境注入。
+
+```bash
+export OCR_INTERNAL_TOKEN="${OCR_INTERNAL_TOKEN:-local-ocr-internal-token}"
+```
+
 上传图片并直接获取 OCR 结果：
 
 ```bash
 curl -X POST http://127.0.0.1:8000/api/ocr/tasks \
+  -H "X-OCR-Internal-Token: $OCR_INTERNAL_TOKEN" \
   -F file=@./sample.png
 ```
 
@@ -41,6 +47,7 @@ curl -X POST http://127.0.0.1:8000/api/ocr/tasks \
 
 ```bash
 curl -X POST http://127.0.0.1:8000/api/ocr/tasks \
+  -H "X-OCR-Internal-Token: $OCR_INTERNAL_TOKEN" \
   -F documentType=employee_profile \
   -F file=@./employee-profile.png
 ```
@@ -48,32 +55,37 @@ curl -X POST http://127.0.0.1:8000/api/ocr/tasks \
 根据任务 ID 查询已保存的识别结果：
 
 ```bash
-curl http://127.0.0.1:8000/api/ocr/tasks/<taskId>
+curl http://127.0.0.1:8000/api/ocr/tasks/<taskId> \
+  -H "X-OCR-Internal-Token: $OCR_INTERNAL_TOKEN"
 ```
 
 获取该任务的文字检测框效果图：
 
 ```bash
 curl http://127.0.0.1:8000/api/ocr/tasks/<taskId>/detection-preview \
+  -H "X-OCR-Internal-Token: $OCR_INTERNAL_TOKEN" \
   --output detection-preview.png
 ```
 
 分页查询任务列表（默认每页 20 条，最大 100 条）：
 
 ```bash
-curl 'http://127.0.0.1:8000/api/ocr/tasks?page=1&pageSize=20'
+curl 'http://127.0.0.1:8000/api/ocr/tasks?page=1&pageSize=20' \
+  -H "X-OCR-Internal-Token: $OCR_INTERNAL_TOKEN"
 ```
 
 查询本地 OCR 运行统计：
 
 ```bash
-curl http://127.0.0.1:8000/api/ocr/statistics
+curl http://127.0.0.1:8000/api/ocr/statistics \
+  -H "X-OCR-Internal-Token: $OCR_INTERNAL_TOKEN"
 ```
 
 使用人工标注的脱敏字段真值，评测高、中、低清晰度样本的字段准确率、检出率、失败率和平均耗时。评测真值仅用于本次请求，不会保存到本地：
 
 ```bash
 curl -X POST http://127.0.0.1:8000/api/ocr/evaluations \
+  -H "X-OCR-Internal-Token: $OCR_INTERNAL_TOKEN" \
   -H 'Content-Type: application/json' \
   -d '{
     "samples": [
@@ -93,6 +105,7 @@ curl -X POST http://127.0.0.1:8000/api/ocr/evaluations \
 
 ```bash
 curl -X PUT http://127.0.0.1:8000/api/ocr/tasks/<taskId>/fields/employee_name \
+  -H "X-OCR-Internal-Token: $OCR_INTERNAL_TOKEN" \
   -H 'Content-Type: application/json' \
   -d '{
     "value": "张三",
@@ -104,7 +117,8 @@ curl -X PUT http://127.0.0.1:8000/api/ocr/tasks/<taskId>/fields/employee_name \
 查询该任务的全部字段修订记录：
 
 ```bash
-curl http://127.0.0.1:8000/api/ocr/tasks/<taskId>/field-revisions
+curl http://127.0.0.1:8000/api/ocr/tasks/<taskId>/field-revisions \
+  -H "X-OCR-Internal-Token: $OCR_INTERNAL_TOKEN"
 ```
 
 所有业务接口返回 `code`、`message`、`data`。识别成功时任务状态为 `SUCCEEDED`；返回数据包含：
@@ -164,7 +178,7 @@ curl http://127.0.0.1:8000/api/ocr/tasks/<taskId>/field-revisions
 
 ## OCR 引擎与配置
 
-默认引擎是 `paddle`。项目根目录的 `.env`、`.env.example` 和 PyCharm 的 `Local OCR Service` 配置均已设置为真实 PaddleOCR：
+默认引擎是 `paddle`。PyCharm 的 `Local OCR Service` 配置和本地启动器均使用真实 PaddleOCR：
 
 ```dotenv
 OCR_ENGINE=paddle
@@ -187,14 +201,18 @@ OCR_INTERNAL_TOKEN=local-ocr-internal-token
 
 `OCR_MAX_IMAGE_EDGE` 限制送入引擎图片的最长边，默认 4096。超大图会等比例缩放以控制本地内存使用，但响应坐标仍以原图为准。
 
+默认 Python 环境放在操作系统本机缓存目录，不随项目同步。可通过 `HR_OCR_VENV_DIR` 指定其他本机路径；不要将运行环境放进云盘按需同步目录。OCR 任务数据库仍使用 `OCR_DATA_DIR` 配置的位置，不会因更换运行环境而迁移。
+
 `OCR_LOW_CONFIDENCE_THRESHOLD` 的默认值为 `0.85`。员工档案映射字段低于该置信度时会返回 `reviewRequired: true`；格式校验失败也会触发该标记。
 
 `mock` 仅用于测试或前后端接口联调。需要使用它时显式设置 `OCR_ENGINE=mock`；该引擎不会执行真实识别，也不会生成业务字段。
 
+生产环境设置 `OCR_ENV=production`。服务会拒绝 mock 引擎、相对或隐式数据目录、默认 MinIO 凭据和缺失或过短的 OCR 内部令牌；内部令牌至少 32 个字符，并须与 Spring Boot 的 `OCR_INTERNAL_TOKEN` 一致。生产数据目录应挂载到持久化磁盘。
+
 ## 测试
 
 ```bash
-.venv/bin/pytest -q
+~/Library/Caches/hr-platform/ocr-service-venv/bin/pytest -q
 ```
 
 服务将任务元数据和字段修订记录保存到 `OCR_DATA_DIR/ocr_tasks.sqlite3`，内部对象引用保存在同一 SQLite 表的专用列中，因此服务重启后仍可按 `taskId` 查询任务、文本块、失败状态、原图元数据和修订历史。对象 key 不出现在公开任务 JSON 中。
@@ -224,3 +242,12 @@ curl -X POST http://127.0.0.1:8000/api/ocr/tasks \
 任务列表按创建时间倒序返回，结构为 `items`、`total`、`page` 和 `pageSize`。统计接口返回总任务数、成功/失败任务数、包含待复核字段的任务数、人工修订总数，以及失败原因的聚合计数。
 
 `POST /api/ocr/evaluations` 用于论文实验与演示统计：调用方应准备高、中、低清晰度的脱敏样本及人工字段真值，并分别以 `HIGH`、`MEDIUM`、`LOW` 传入。响应中的 `fieldAccuracy` 是与真值完全一致的字段数除以真值字段数，`fieldDetectionRate` 是已返回字段数除以真值字段数，`failureRate` 按 OCR 任务状态统计；`byClarity` 提供同一指标的清晰度分组结果。
+
+仓库脚本会从 `tests/fixtures/platform-smoke.png` 派生 4 组姓名和员工编号、3 种版面（原版、边框分隔、轻微旋转）及 3 种清晰度，共 36 张可重复的合成图像；每张核对姓名和员工编号两个字段，真值只随评测请求发送，不保存到 OCR 服务。该数据集共享一张合成底图，适合验证评测流程，不代表真实企业材料的泛化准确率。所有 `/api/ocr/*` 接口均要求内部令牌，评测脚本从 `OCR_INTERNAL_TOKEN` 环境变量读取令牌；开发环境默认值仅用于本地演示。可从仓库根目录运行：
+
+```bash
+OCR_INTERNAL_TOKEN=local-ocr-internal-token \
+python scripts/evaluate-ocr-clarity.py --base-url http://127.0.0.1:8000
+```
+
+当前评测指标及限制见仓库根目录 `docs/ocr-clarity-evaluation.md`。

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime, timezone
 import hashlib
 from pathlib import Path
+import threading
 from time import perf_counter
 from tempfile import TemporaryDirectory
 from uuid import uuid4
@@ -21,6 +23,20 @@ from .models import (
 )
 from .object_storage import ObjectStorage, StorageObjectNotFound, validate_object_key
 from .store import SourceFileStore, StorageReferences, TaskStore
+
+
+class RecognitionAborted(Exception):
+    """识别已被外层超时/取消放弃；线程不得再把结果翻成 SUCCEEDED。"""
+
+
+@dataclass
+class PreparedTask:
+    """begin_task 完成落库后、识别开始前的任务快照，供后台线程执行识别。"""
+
+    task: OcrTask
+    object_key: str
+    references: StorageReferences
+    document_type: str | None = None
 
 
 class OcrService:
@@ -66,6 +82,32 @@ class OcrService:
         source_size: int | None = None,
         source_sha256: str | None = None,
     ) -> OcrTask:
+        """同步入口，保留给直接调用方；HTTP 路由改用 begin/run 两段以做并发与超时控制。"""
+
+        prepared = self.begin_task(
+            original_name=original_name,
+            content_type=content_type,
+            content=content,
+            document_type=document_type,
+            source_object_key=source_object_key,
+            source_size=source_size,
+            source_sha256=source_sha256,
+        )
+        return self.run_task_recognition(prepared, cancel_event=None)
+
+    def begin_task(
+        self,
+        *,
+        original_name: str,
+        content_type: str,
+        content: bytes | None = None,
+        document_type: str | None = None,
+        source_object_key: str | None = None,
+        source_size: int | None = None,
+        source_sha256: str | None = None,
+    ) -> PreparedTask:
+        """校验来源、落库初始 RECOGNIZING 任务，但不执行阻塞式识别。"""
+
         if (content is None) == (source_object_key is None):
             raise ValueError("Exactly one OCR source mode is required")
         if content is not None:
@@ -105,21 +147,44 @@ class OcrService:
             updatedAt=now,
         )
         self.tasks.put(task, references)
+        return PreparedTask(
+            task=task,
+            object_key=object_key,
+            references=references,
+            document_type=document_type,
+        )
+
+    def run_task_recognition(
+        self,
+        prepared: PreparedTask,
+        cancel_event: threading.Event | None,
+    ) -> OcrTask:
+        """在后台线程里执行下载、同步识别、字段映射和预览渲染。
+
+        PaddleOCR 推理是阻塞调用，故意不在事件循环里直接跑；由路由用
+        ``asyncio.to_thread`` 把本方法扔到线程池，并配合信号量与超时控制。
+        """
+
+        task = prepared.task
+        references = prepared.references
         recognition_started_at = perf_counter()
         try:
             # 原图只短暂落到系统临时目录，识别与预览完成后由上下文管理器清理。
             with TemporaryDirectory(prefix="ocr-task-") as directory:
-                source_path = Path(directory) / source_file.stored_name
-                downloaded = self.storage.download_to_path(object_key, source_path)
-                if source_file.sha256 and downloaded.sha256 != source_file.sha256:
+                source_path = Path(directory) / task.source_file.stored_name
+                downloaded = self.storage.download_to_path(prepared.object_key, source_path)
+                if task.source_file.sha256 and downloaded.sha256 != task.source_file.sha256:
                     raise ValueError("Stored source object hash does not match metadata")
-                if not source_file.sha256:
-                    source_file.sha256 = downloaded.sha256
+                if not task.source_file.sha256:
+                    task.source_file.sha256 = downloaded.sha256
                 recognition = self.engine.recognize(source_path)
+                if cancel_event is not None and cancel_event.is_set():
+                    # 外层超时已抢先把任务判失败；这里不能再把它翻成 SUCCEEDED。
+                    raise RecognitionAborted("recognition abandoned after timeout")
                 task.status = "SUCCEEDED"
                 task.text_blocks = recognition.text_blocks
                 task.fields = recognition.fields
-                if document_type == "employee_profile":
+                if prepared.document_type == "employee_profile":
                     task.fields = self.employee_profile_extractor.extract(task.text_blocks)
                 task.detection_preview = self.source_files.save_detection_preview(
                     task_id=task.task_id,
@@ -129,11 +194,14 @@ class OcrService:
                 )
                 references = StorageReferences(
                     source_bucket=self.bucket,
-                    source_object_key=object_key,
+                    source_object_key=prepared.object_key,
                     preview_bucket=self.bucket,
                     preview_object_key=f"ocr/preview/{task.task_id}.png",
                     storage_version=1,
                 )
+        except RecognitionAborted as exc:
+            task.status = "FAILED"
+            task.error_message = str(exc)
         except Exception as exc:  # Recognition and preview failures are queryable states.
             task.status = "FAILED"
             task.error_message = str(exc)
@@ -141,6 +209,43 @@ class OcrService:
             task.processing_duration_ms = (perf_counter() - recognition_started_at) * 1000
         task.updated_at = datetime.now(timezone.utc)
         return self.tasks.put(task, references)
+
+    def find_succeeded_by_sha256(self, sha256: str | None) -> OcrTask | None:
+        """同 hash 幂等：返回已有同指纹的成功任务，避免重复推理。"""
+
+        if not sha256:
+            return None
+        for task in self.tasks.list_tasks():
+            if task.status == "SUCCEEDED" and task.source_file.sha256 == sha256:
+                return task
+        return None
+
+    def mark_recognition_failed(self, task_id: str, message: str) -> OcrTask | None:
+        """超时后由路由调用，把仍处 RECOGNIZING 的任务落库为 FAILED。"""
+
+        task = self.tasks.get(task_id)
+        if task is None:
+            return None
+        task.status = "FAILED"
+        task.error_message = message
+        task.updated_at = datetime.now(timezone.utc)
+        return self.tasks.put(task)
+
+    def recover_interrupted_tasks(self) -> int:
+        """启动时把崩溃残留的 RECOGNIZING 任务标记为 INTERRUPTED，避免永久悬挂。"""
+
+        recovered = 0
+        now = datetime.now(timezone.utc)
+        for task in self.tasks.list_tasks():
+            if task.status != "RECOGNIZING":
+                continue
+            task.status = "INTERRUPTED"
+            task.error_message = "service restarted before recognition finished"
+            task.updated_at = now
+            self.tasks.put(task)
+            recovered += 1
+        return recovered
+
 
     def get_task(self, task_id: str) -> OcrTask | None:
         return self.tasks.get(task_id)

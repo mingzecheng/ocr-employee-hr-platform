@@ -1,14 +1,17 @@
 from __future__ import annotations
 
+import asyncio
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from io import BytesIO
+import hashlib
 import os
 from pathlib import Path
 import secrets
 import sys
+import threading
 
-from fastapi import FastAPI, File, Form, Header, Path as ApiPath, Query, UploadFile
+from fastapi import FastAPI, File, Form, Header, Path as ApiPath, Query, Request, UploadFile
 from fastapi.responses import JSONResponse, Response
 from PIL import Image
 
@@ -109,6 +112,8 @@ def create_app(
                 bucket=settings.minio_bucket,
                 allowed_source_prefix=settings.minio_allowed_source_prefix,
             )
+        # 进程上次可能在识别中途崩溃：把仍处 RECOGNIZING 的悬挂任务重置为 INTERRUPTED。
+        application.state.ocr_service.recover_interrupted_tasks()
         yield
 
     app = FastAPI(
@@ -118,6 +123,21 @@ def create_app(
         lifespan=lifespan,
     )
     app.state.settings = settings
+    # 限制同时执行的 PaddleOCR 识别数，防止慢任务把事件循环和进程资源打满。
+    app.state.ocr_semaphore = asyncio.Semaphore(settings.max_concurrent_tasks)
+
+    @app.middleware("http")
+    async def protect_internal_api(request: Request, call_next):
+        if request.url.path.startswith("/api/ocr/") and not secrets.compare_digest(
+            request.headers.get("X-OCR-Internal-Token", ""), settings.internal_token
+        ):
+            return envelope(
+                code="FORBIDDEN",
+                message="Invalid OCR internal token",
+                data=None,
+                status_code=403,
+            )
+        return await call_next(request)
 
     if engine is not None:
         app.state.ocr_service = OcrService(
@@ -248,8 +268,19 @@ def create_app(
                 "source_size": source_size,
                 "source_sha256": source_sha256,
             }
+        service = app.state.ocr_service
+        # 同 hash 幂等：完全相同的图片直接返回已有成功任务，不重复触发 PaddleOCR 推理。
+        source_sha = (
+            hashlib.sha256(content).hexdigest()
+            if create_kwargs.get("content") is not None
+            else create_kwargs.get("source_sha256")
+        )
+        existing = service.find_succeeded_by_sha256(source_sha)
+        if existing is not None:
+            return envelope(code=0, message="OK", data=task_data(existing))
         try:
-            task = app.state.ocr_service.create_task(
+            prepared = await asyncio.to_thread(
+                service.begin_task,
                 **create_kwargs,
                 document_type=document_type,
             )
@@ -266,6 +297,22 @@ def create_app(
                 message=str(exc),
                 data=None,
                 status_code=400,
+            )
+
+        abandoned = threading.Event()
+        try:
+            async with app.state.ocr_semaphore:
+                task = await asyncio.wait_for(
+                    asyncio.to_thread(service.run_task_recognition, prepared, abandoned),
+                    timeout=settings.task_timeout_seconds,
+                )
+        except asyncio.TimeoutError:
+            # 推理线程无法被强杀，但通知它不要回写 SUCCEEDED；本路由先把任务判失败。
+            abandoned.set()
+            task = await asyncio.to_thread(
+                service.mark_recognition_failed,
+                prepared.task.task_id,
+                f"recognition exceeded {settings.task_timeout_seconds:g}s timeout",
             )
         return envelope(code=0, message="OK", data=task_data(task))
 

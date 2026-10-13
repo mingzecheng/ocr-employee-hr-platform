@@ -43,15 +43,21 @@ class MockOcrEngine(OcrEngine):
     version = "mock-1.0"
 
     def recognize(self, image_path: Path) -> RecognitionOutput:
-        # mock 只模拟原始文本证据，不伪造尚未实现的业务字段映射。
+        # mock 使用与员工档案模板一致的标签格式，保证联调能覆盖字段映射和人工复核链路。
         del image_path
         return RecognitionOutput(
             text_blocks=[
                 TextBlock(
                     pageNo=1,
-                    text="employee_name=张三 employee_id=EMP-001",
+                    text="员工姓名：张三",
                     confidence=0.97,
                     bbox=[10, 10, 220, 80],
+                ),
+                TextBlock(
+                    pageNo=1,
+                    text="员工编号：EMP-001",
+                    confidence=0.96,
+                    bbox=[10, 90, 220, 160],
                 )
             ],
             fields=[],

@@ -21,12 +21,24 @@ def image_bytes() -> bytes:
     return output.getvalue()
 
 
+def distinct_image_bytes() -> bytes:
+    # 与默认白底图内容不同，保证 SHA-256 不同，避免命中同 hash 幂等。
+    image = Image.new("RGB", (240, 100), "black")
+    output = BytesIO()
+    image.save(output, format="PNG")
+    return output.getvalue()
+
+
+def authorized_client(app) -> TestClient:
+    return TestClient(app, headers={"X-OCR-Internal-Token": app.state.settings.internal_token})
+
+
 def client(tmp_path, engine: OcrEngine | None = None) -> TestClient:
-    return TestClient(create_app(data_dir=tmp_path, engine=engine or MockOcrEngine()))
+    return authorized_client(create_app(data_dir=tmp_path, engine=engine or MockOcrEngine()))
 
 
 def storage_client(tmp_path, storage, engine: OcrEngine | None = None) -> TestClient:
-    return TestClient(
+    return authorized_client(
         create_app(
             data_dir=tmp_path,
             engine=engine or MockOcrEngine(),
@@ -92,11 +104,23 @@ def test_lifespan_builds_default_engine_with_configured_image_limit(tmp_path, mo
 
     monkeypatch.setattr("app.main.build_engine", fake_build_engine)
 
-    with TestClient(create_app(data_dir=tmp_path)) as api:
+    with authorized_client(create_app(data_dir=tmp_path)) as api:
         response = api.get("/health")
 
     assert response.json() == {"status": "ok", "engine": "mock"}
     assert calls == [("paddle", 4096)]
+
+
+def test_internal_routes_require_token_while_health_check_remains_public(tmp_path):
+    app = create_app(data_dir=tmp_path, engine=MockOcrEngine(), internal_token="service-secret")
+
+    with TestClient(app) as api:
+        health = api.get("/health")
+        tasks = api.get("/api/ocr/tasks")
+
+    assert health.status_code == 200
+    assert tasks.status_code == 403
+    assert tasks.json()["code"] == "FORBIDDEN"
 
 
 def test_health_reports_local_service(tmp_path):
@@ -143,13 +167,13 @@ def test_successful_task_persists_and_serves_detection_preview(tmp_path):
 
 
 def test_detection_preview_remains_available_after_service_restart(tmp_path):
-    with TestClient(create_app(data_dir=tmp_path, engine=MockOcrEngine())) as first_service:
+    with authorized_client(create_app(data_dir=tmp_path, engine=MockOcrEngine())) as first_service:
         task = first_service.post(
             "/api/ocr/tasks",
             files={"file": ("employee.png", image_bytes(), "image/png")},
         ).json()["data"]
 
-    with TestClient(create_app(data_dir=tmp_path, engine=MockOcrEngine())) as restarted_service:
+    with authorized_client(create_app(data_dir=tmp_path, engine=MockOcrEngine())) as restarted_service:
         response = restarted_service.get(task["detectionPreview"]["url"])
 
     assert response.status_code == 200
@@ -158,7 +182,7 @@ def test_detection_preview_remains_available_after_service_restart(tmp_path):
 
 def test_detection_preview_is_backfilled_for_legacy_successful_task(tmp_path):
     application = create_app(data_dir=tmp_path, engine=MockOcrEngine())
-    with TestClient(application) as api:
+    with authorized_client(application) as api:
         task = api.post(
             "/api/ocr/tasks",
             files={"file": ("employee.png", image_bytes(), "image/png")},
@@ -178,7 +202,7 @@ def test_detection_preview_is_backfilled_for_legacy_successful_task(tmp_path):
 
 def test_detection_preview_is_rebuilt_when_recorded_file_is_missing(tmp_path):
     application = create_app(data_dir=tmp_path, engine=MockOcrEngine())
-    with TestClient(application) as api:
+    with authorized_client(application) as api:
         task = api.post(
             "/api/ocr/tasks",
             files={"file": ("employee.png", image_bytes(), "image/png")},
@@ -199,7 +223,7 @@ def test_legacy_task_and_preview_are_available_from_current_data_dir(tmp_path):
     legacy_dir = tmp_path / "app-data"
     current_dir = tmp_path / "data"
     storage = InMemoryObjectStorage()
-    with TestClient(create_app(data_dir=legacy_dir, engine=MockOcrEngine(), storage=storage)) as legacy_api:
+    with authorized_client(create_app(data_dir=legacy_dir, engine=MockOcrEngine(), storage=storage)) as legacy_api:
         task = legacy_api.post(
             "/api/ocr/tasks",
             files={"file": ("employee.png", image_bytes(), "image/png")},
@@ -209,7 +233,7 @@ def test_legacy_task_and_preview_are_available_from_current_data_dir(tmp_path):
         legacy_task.detection_preview = None
         legacy_api.app.state.ocr_service.tasks.put(legacy_task)
 
-    with TestClient(
+    with authorized_client(
         create_app(
             data_dir=current_dir,
             legacy_data_dir=legacy_dir,
@@ -346,7 +370,7 @@ def test_task_list_is_paginated_and_statistics_summarize_runtime_state(tmp_path)
     failed_api = client(tmp_path, engine=FailingEngine())
     failed = failed_api.post(
         "/api/ocr/tasks",
-        files={"file": ("failed.png", image_bytes(), "image/png")},
+        files={"file": ("failed.png", distinct_image_bytes(), "image/png")},
     ).json()["data"]
 
     page = successful_api.get("/api/ocr/tasks", params={"page": 1, "pageSize": 1})
@@ -406,7 +430,7 @@ def test_evaluation_reports_field_accuracy_and_failures_by_sample_clarity(tmp_pa
     failed = failed_api.post(
         "/api/ocr/tasks",
         data={"documentType": "employee_profile"},
-        files={"file": ("low.png", image_bytes(), "image/png")},
+        files={"file": ("low.png", distinct_image_bytes(), "image/png")},
     ).json()["data"]
 
     response = successful_api.post(
@@ -516,13 +540,13 @@ def test_upload_creates_queryable_task_with_structured_result(tmp_path):
 
 
 def test_task_can_be_queried_after_service_restarts(tmp_path):
-    with TestClient(create_app(data_dir=tmp_path, engine=MockOcrEngine())) as first_service:
+    with authorized_client(create_app(data_dir=tmp_path, engine=MockOcrEngine())) as first_service:
         created = first_service.post(
             "/api/ocr/tasks",
             files={"file": ("employee.png", image_bytes(), "image/png")},
         ).json()["data"]
 
-    with TestClient(create_app(data_dir=tmp_path, engine=MockOcrEngine())) as restarted_service:
+    with authorized_client(create_app(data_dir=tmp_path, engine=MockOcrEngine())) as restarted_service:
         response = restarted_service.get(f"/api/ocr/tasks/{created['taskId']}")
 
     assert response.status_code == 200
@@ -586,7 +610,7 @@ def test_failed_recognition_keeps_source_file_and_error(tmp_path):
 
 def test_detection_preview_failure_marks_task_failed(tmp_path, monkeypatch):
     application = create_app(data_dir=tmp_path, engine=MockOcrEngine())
-    with TestClient(application) as api:
+    with authorized_client(application) as api:
         def fail_preview(**kwargs):
             del kwargs
             raise OSError("preview storage unavailable")
@@ -717,6 +741,7 @@ def test_openapi_documents_ocr_routes_and_field_meanings(tmp_path):
         "RECOGNIZING",
         "SUCCEEDED",
         "FAILED",
+        "INTERRUPTED",
     ]
 
     source_properties = schemas["SourceFile"]["properties"]

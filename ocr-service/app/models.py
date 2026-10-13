@@ -111,6 +111,7 @@ class OcrTask(ApiModel):
         "RECOGNIZING",
         "SUCCEEDED",
         "FAILED",
+        "INTERRUPTED",
     ] = Field(description="任务当前状态")
     source_file: SourceFile = Field(alias="sourceFile", description="原始上传文件信息")
     detection_preview: DetectionPreview | None = Field(
