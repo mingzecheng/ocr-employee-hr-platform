@@ -1,6 +1,6 @@
 import type { Component } from 'vue'
 import {
-  Bell, Briefcase, Collection, Files, Grid, List, Lock, Notebook, Setting, User, Warning,
+  Bell, Briefcase, Collection, Connection, Files, Grid, Histogram, Key, List, Lock, Monitor, Notebook, Setting, User, Warning,
 } from '@element-plus/icons-vue'
 
 export type PortalId = 'employee' | 'manager' | 'hr' | 'admin'
@@ -71,8 +71,12 @@ export const portalConfigs: Record<PortalId, PortalConfig> = {
     nav: [
       { section: '平台管理', path: '/', label: '管理概览', icon: Grid },
       { section: '平台管理', path: '/admin/users', label: '账号与角色', icon: Briefcase },
+      { section: '运行监控', path: '/admin/monitor', label: '服务器监控', icon: Monitor },
+      { section: '运行监控', path: '/admin/online-users', label: '在线用户', icon: Connection },
       { section: '平台配置', path: '/organization', label: '组织结构', icon: Setting },
+      { section: '平台配置', path: '/admin/roles', label: '角色权限', icon: Key },
       { section: '平台审计', path: '/audit-logs', label: '审计日志', icon: Notebook },
+      { section: '平台审计', path: '/admin/login-logs', label: '登录日志', icon: Histogram },
     ],
   },
 }

@@ -103,6 +103,70 @@ export interface InventoryItem {
 }
 export interface InventoryVersionOption { id: number; versionNo: number; status: string; isCurrent: boolean }
 
+/** GET /api/admin/monitor 服务器运行指标，仅 SYSTEM_ADMIN 可访问。 */
+export interface ServerMonitor {
+  jvm: {
+    heapUsed: number
+    heapMax: number
+    nonHeapUsed: number
+    threadCount: number
+    classLoaded: number
+    gcCount: number
+    gcTimeMs: number
+  }
+  system: {
+    cpuCores: number
+    systemLoad: number
+    physicalMemTotal: number
+    physicalMemUsed: number
+    diskTotal: number
+    diskFree: number
+  }
+  mysql: {
+    threadsConnected: number
+    uptimeSec: number
+  }
+  /** Redis 不可用时后端返回 null，前端展示“Redis 未连接”。 */
+  redis: {
+    usedMemory: number
+    connectedClients: number
+    hits: number
+    misses: number
+  } | null
+  app: {
+    startTime: string
+    uptimeMs: number
+    version: string
+  }
+}
+
+/** GET /api/admin/online-users 扫 Redis 刷新令牌得到的近似在线用户。 */
+export interface OnlineUser {
+  userId: number
+  username: string
+  roles: string[]
+  /** 近似登录时间（≈ refresh token 创建时间）。 */
+  loginApprox: string
+}
+
+/** GET /api/admin/roles 角色 × 模块 权限矩阵（只读，固定角色注解）。 */
+export interface RolePermissionMatrix {
+  roles: string[]
+  modules: string[]
+  matrix: Record<string, Record<string, boolean>>
+}
+
+/** GET /api/admin/login-logs 登录/登出/刷新相关日志条目。 */
+export interface LoginLogItem {
+  id: number
+  username: string
+  action: string
+  clientIp?: string | null
+  userAgent?: string | null
+  result: string
+  createdAt: string
+}
+
 export const http = axios.create({ baseURL: import.meta.env.VITE_API_BASE_URL || '/api', timeout: 15000 })
 
 http.interceptors.request.use((config) => {

@@ -48,8 +48,12 @@ const portalRoutes: Record<PortalId, RouteRecordRaw[]> = {
   admin: [
     { path: '/', component: () => import('../views/AdminHomeView.vue'), meta: { title: '平台管理概览', roles: adminRoles } },
     { path: '/admin/users', component: () => import('../views/AdminUsersView.vue'), meta: { title: '账号与角色', roles: adminRoles } },
+    { path: '/admin/monitor', component: () => import('../views/ServerMonitorView.vue'), meta: { title: '服务器监控', roles: adminRoles } },
+    { path: '/admin/online-users', component: () => import('../views/OnlineUsersView.vue'), meta: { title: '在线用户', roles: adminRoles } },
+    { path: '/admin/roles', component: () => import('../views/RolesView.vue'), meta: { title: '角色权限矩阵', roles: adminRoles } },
     { path: '/organization', component: () => import('../views/OrganizationAdminView.vue'), meta: { title: '组织结构', roles: organizationRoles } },
     { path: '/audit-logs', component: () => import('../views/AuditLogView.vue'), meta: { title: '审计日志', roles: adminRoles } },
+    { path: '/admin/login-logs', component: () => import('../views/LoginLogsView.vue'), meta: { title: '登录日志', roles: adminRoles } },
   ],
 }
 
