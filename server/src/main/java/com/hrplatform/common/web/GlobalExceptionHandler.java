@@ -1,6 +1,7 @@
 package com.hrplatform.common.web;
 
 import com.hrplatform.audit.OperationLogService;
+import com.hrplatform.common.log.PiiMasker;
 import com.hrplatform.common.security.JwtPrincipal;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -116,7 +117,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> unexpected(Exception exception, HttpServletRequest request) {
-        log.error("Unhandled request failure traceId={}", traceId(request), exception);
+        log.error("Unhandled request failure traceId={} type={} message={}",
+                traceId(request), exception.getClass().getName(), PiiMasker.maskText(exception.getMessage()));
         recordFailure(request, "INTERNAL_ERROR");
         return ResponseEntity.internalServerError()
                 .body(ApiResponse.failure("INTERNAL_ERROR", "服务暂时不可用", traceId(request)));
@@ -151,7 +153,8 @@ public class GlobalExceptionHandler {
             operationLogService.record(operatorId, "REQUEST_FAILED", "API_REQUEST", null,
                     "FAILED", null, afterSummary);
         } catch (RuntimeException auditFailure) {
-            log.error("Failed to persist request failure audit traceId={}", traceId(request), auditFailure);
+            log.error("Failed to persist request failure audit traceId={} type={} message={}",
+                    traceId(request), auditFailure.getClass().getName(), PiiMasker.maskText(auditFailure.getMessage()));
         }
     }
 }

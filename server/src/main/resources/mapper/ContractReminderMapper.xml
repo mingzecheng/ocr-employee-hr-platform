@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hrplatform.contract.ContractReminderMapper">
+    <resultMap id="EventMap" type="com.hrplatform.contract.ContractReminderEvent">
+        <constructor>
+            <idArg column="id" javaType="java.lang.Long"/>
+            <arg column="contract_id" javaType="java.lang.Long"/>
+            <arg column="due_date" javaType="java.time.LocalDate"/>
+            <arg column="reminder_stage" javaType="java.lang.String"/>
+            <arg column="status" javaType="java.lang.String"/>
+            <arg column="created_at" javaType="java.time.LocalDateTime"/>
+            <arg column="acked_at" javaType="java.time.LocalDateTime"/>
+        </constructor>
+    </resultMap>
+
+    <resultMap id="DueContractRowMap" type="com.hrplatform.contract.ContractReminderMapper$DueContractRow">
+        <constructor>
+            <arg column="contract_id" javaType="java.lang.Long"/>
+            <arg column="due_date" javaType="java.time.LocalDate"/>
+        </constructor>
+    </resultMap>
+
+    <resultMap id="TodoRowMap" type="com.hrplatform.contract.ContractReminderMapper$ContractReminderTodoRow">
+        <constructor>
+            <idArg column="id" javaType="java.lang.Long"/>
+            <arg column="title" javaType="java.lang.String"/>
+            <arg column="resource_id" javaType="java.lang.Long"/>
+            <arg column="employee_id" javaType="java.lang.Long"/>
+            <arg column="status" javaType="java.lang.String"/>
+            <arg column="reminder_stage" javaType="java.lang.String"/>
+            <arg column="due_at" javaType="java.time.LocalDateTime"/>
+            <arg column="created_at" javaType="java.time.LocalDateTime"/>
+        </constructor>
+    </resultMap>
+
+    <!-- 调度器候选：仍未做续签决定（NOT_DUE）且到期日落在 [today, through] 的合同 -->
+    <select id="findDueContractsWithin" resultMap="DueContractRowMap">
+        SELECT c.id AS contract_id, c.ends_on AS due_date
+        FROM employee_contract c
+        WHERE c.renewal_status = 'NOT_DUE'
+          AND c.ends_on &gt;= #{today}
+          AND c.ends_on &lt;= #{through}
+        ORDER BY c.ends_on ASC, c.id ASC
+    </select>
+
+    <select id="exists" resultType="boolean">
+        SELECT EXISTS (
+            SELECT 1 FROM contract_reminder_event e
+            WHERE e.contract_id = #{contractId} AND e.reminder_stage = #{stage}
+        )
+    </select>
+
+    <insert id="insert">
+        INSERT INTO contract_reminder_event (contract_id, due_date, reminder_stage, status)
+        VALUES (#{contractId}, #{dueDate}, #{stage}, 'PENDING')
+    </insert>
+
+    <select id="findById" resultMap="EventMap">
+        SELECT e.id, e.contract_id, e.due_date, e.reminder_stage, e.status, e.created_at, e.acked_at
+        FROM contract_reminder_event e
+        WHERE e.id = #{id}
+        LIMIT 1
+    </select>
+
+    <update id="ack">
+        UPDATE contract_reminder_event
+        SET status = 'ACKED', acked_at = #{ackedAt}
+        WHERE id = #{id} AND status = 'PENDING'
+    </update>
+
+    <!-- 待办聚合：PENDING 且合同仍未做续签决定；HR(ALL) 全见，部门负责人见本部门员工 -->
+    <select id="findPendingForTodo" resultMap="TodoRowMap">
+        SELECT e.id,
+               CONCAT('合同到期提醒（', e.reminder_stage, '） · ', emp.name) AS title,
+               e.id AS resource_id,
+               c.employee_id AS employee_id,
+               e.status,
+               e.reminder_stage,
+               e.due_date AS due_at,
+               e.created_at
+        FROM contract_reminder_event e
+        JOIN employee_contract c ON c.id = e.contract_id
+        JOIN employee emp ON emp.id = c.employee_id
+        WHERE e.status = 'PENDING'
+          AND c.renewal_status = 'NOT_DUE'
+          AND (<choose>
+              <when test="scopeType == 'ALL'">1 = 1</when>
+              <when test="scopeType == 'DEPARTMENT'">emp.department_id = #{departmentId}</when>
+              <otherwise>1 = 0</otherwise>
+          </choose>)
+        ORDER BY e.due_date ASC, e.id ASC
+        LIMIT #{limit}
+    </select>
+</mapper>

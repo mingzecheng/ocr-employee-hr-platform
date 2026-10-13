@@ -1,10 +1,12 @@
 package com.hrplatform.workflow;
 
 import com.hrplatform.common.security.DataScope;
+import com.hrplatform.contract.ContractReminderMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -13,9 +15,11 @@ import java.util.List;
 public class TodoService {
     private static final int MAX_LIMIT = 100;
     private final TodoMapper mapper;
+    private final ContractReminderMapper reminderMapper;
 
-    public TodoService(TodoMapper mapper) {
+    public TodoService(TodoMapper mapper, ContractReminderMapper reminderMapper) {
         this.mapper = mapper;
+        this.reminderMapper = reminderMapper;
     }
 
     @Transactional(readOnly = true)
@@ -49,6 +53,13 @@ public class TodoService {
                     .forEach(row -> items.add(map(row, "OCR_FAILED", "MEDIUM",
                             "/todos/ocr/" + row.resourceId())));
         }
+        // 合同到期提醒：HR(ALL) 与部门负责人(DEPARTMENT)可见，普通员工 scope 由 SQL 置空。
+        reminderMapper.findPendingForTodo(scope.type().name(), scope.employeeId(), scope.departmentId(),
+                        MAX_LIMIT)
+                .forEach(row -> items.add(new TodoItem(row.id(), "CONTRACT_RENEWAL_DUE", row.title(),
+                        row.resourceId(), row.status(), reminderPriority(row.dueAt(), now),
+                        row.dueAt(), row.createdAt(),
+                        "/todos/contract-reminder/" + row.resourceId())));
 
         items.sort(Comparator.comparingInt((TodoItem item) -> priority(item.priority()))
                 .thenComparing(TodoItem::dueAt, Comparator.nullsLast(Comparator.naturalOrder()))
@@ -80,5 +91,20 @@ public class TodoService {
             case "MEDIUM" -> 1;
             default -> 2;
         };
+    }
+
+    /** 按距到期日的天数给合同提醒定优先级：≤1 天 HIGH，≤7 天 MEDIUM，其余 LOW。 */
+    private String reminderPriority(LocalDateTime dueAt, LocalDateTime now) {
+        if (dueAt == null) {
+            return "MEDIUM";
+        }
+        long days = ChronoUnit.DAYS.between(now.toLocalDate(), dueAt.toLocalDate());
+        if (days <= 1) {
+            return "HIGH";
+        }
+        if (days <= 7) {
+            return "MEDIUM";
+        }
+        return "LOW";
     }
 }

@@ -1,6 +1,7 @@
 package com.hrplatform.archive;
 
 import com.hrplatform.audit.OperationLogService;
+import com.hrplatform.common.log.PiiMasker;
 import com.hrplatform.common.security.DataScope;
 import com.hrplatform.employee.EmployeeMapper;
 import com.hrplatform.employee.DataScopeDeniedException;
@@ -103,7 +104,10 @@ public class ArchiveService {
                     storage.delete(objectKey);
                 } catch (RuntimeException cleanupFailure) {
                     failure.addSuppressed(cleanupFailure);
-                    log.error("档案元数据写入失败且对象补偿删除失败: {}", objectKey, cleanupFailure);
+                    log.error("档案元数据写入失败且对象补偿删除失败: objectKey={} cleanupType={} cleanupMsg={}",
+                            PiiMasker.maskObjectKey(objectKey),
+                            cleanupFailure.getClass().getName(),
+                            PiiMasker.maskText(cleanupFailure.getMessage()));
                 }
             }
             throw failure;
