@@ -19,6 +19,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.util.StringUtils;
 import com.hrplatform.auth.InvalidCredentialsException;
+import com.hrplatform.common.security.InvalidRefreshTokenException;
+import com.hrplatform.common.security.RefreshTokenUnavailableException;
 import com.hrplatform.employee.DataScopeDeniedException;
 import com.hrplatform.archive.InvalidArchiveFileException;
 import com.hrplatform.archive.ArchiveReadDeniedException;
@@ -80,6 +82,18 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> invalidCredentials(InvalidCredentialsException exception, HttpServletRequest request) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(ApiResponse.failure("UNAUTHORIZED", exception.getMessage(), traceId(request)));
+    }
+
+    @ExceptionHandler(InvalidRefreshTokenException.class)
+    public ResponseEntity<ApiResponse<Void>> invalidRefreshToken(InvalidRefreshTokenException exception, HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponse.failure("UNAUTHORIZED", exception.getMessage(), traceId(request)));
+    }
+
+    @ExceptionHandler(RefreshTokenUnavailableException.class)
+    public ResponseEntity<ApiResponse<Void>> refreshUnavailable(RefreshTokenUnavailableException exception, HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(ApiResponse.failure("SERVICE_UNAVAILABLE", "登录状态续期服务暂不可用，请重新登录", traceId(request)));
     }
 
     @ExceptionHandler(AccessDeniedException.class)

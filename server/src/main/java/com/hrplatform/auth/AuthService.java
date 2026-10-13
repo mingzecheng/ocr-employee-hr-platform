@@ -1,8 +1,10 @@
 package com.hrplatform.auth;
 
 import com.hrplatform.audit.OperationLogService;
+import com.hrplatform.common.security.InvalidRefreshTokenException;
 import com.hrplatform.common.security.JwtPrincipal;
 import com.hrplatform.common.security.JwtService;
+import com.hrplatform.common.security.RefreshTokenService;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -21,21 +23,29 @@ public class AuthService {
     private final JwtService jwtService;
     private final boolean demoAccountsEnabled;
     private final OperationLogService operationLogService;
+    private final RefreshTokenService refreshTokenService;
 
     @org.springframework.beans.factory.annotation.Autowired
     public AuthService(SysUserMapper userMapper, PasswordEncoder passwordEncoder, JwtService jwtService,
                        @Value("${platform.demo-accounts-enabled:true}") boolean demoAccountsEnabled,
-                       OperationLogService operationLogService) {
+                       OperationLogService operationLogService,
+                       RefreshTokenService refreshTokenService) {
         this.userMapper = userMapper;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.demoAccountsEnabled = demoAccountsEnabled;
         this.operationLogService = operationLogService;
+        this.refreshTokenService = refreshTokenService;
     }
 
     public AuthService(SysUserMapper userMapper, PasswordEncoder passwordEncoder, JwtService jwtService,
                        boolean demoAccountsEnabled) {
-        this(userMapper, passwordEncoder, jwtService, demoAccountsEnabled, null);
+        this(userMapper, passwordEncoder, jwtService, demoAccountsEnabled, null, null);
+    }
+
+    public AuthService(SysUserMapper userMapper, PasswordEncoder passwordEncoder, JwtService jwtService,
+                       boolean demoAccountsEnabled, OperationLogService operationLogService) {
+        this(userMapper, passwordEncoder, jwtService, demoAccountsEnabled, operationLogService, null);
     }
 
     public AuthResponse login(LoginRequest request) {
@@ -53,8 +63,32 @@ public class AuthService {
         }
         JwtPrincipal principal = new JwtPrincipal(user.id(), user.employeeId(), user.departmentId(), user.roles());
         String token = jwtService.issue(principal);
+        // rememberMe 缺省 true；false 时不发 refresh token（仅 8 小时 access token）。
+        String refreshToken = request.rememberMe() == Boolean.FALSE || refreshTokenService == null
+                ? null : refreshTokenService.issue(user.id());
         record(user.id(), "LOGIN", "SYS_USER", user.id(), "SUCCESS");
-        return new AuthResponse(token, Instant.now().plus(jwtService.expiration()), AuthUser.from(user));
+        return new AuthResponse(token, Instant.now().plus(jwtService.expiration()), AuthUser.from(user), refreshToken);
+    }
+
+    /**
+     * 用旧 refresh token 换发新的 access token + 新的 refresh token（rotate）。
+     * 旧 access token 在自然过期前仍有效（不强制失效），符合本科演示项目的安全模型。
+     */
+    public AuthResponse refresh(String refreshToken) {
+        if (refreshTokenService == null) {
+            throw new InvalidRefreshTokenException("refresh token 服务未配置");
+        }
+        RefreshTokenService.RotatedRefreshToken rotated = refreshTokenService.rotate(refreshToken);
+        SysUser user = userMapper.findById(rotated.userId());
+        if (user == null || !user.enabled()) {
+            throw new InvalidRefreshTokenException("账号不存在或已被禁用");
+        }
+        user = user.withRoles(userMapper.findRoles(user.id()));
+        JwtPrincipal principal = new JwtPrincipal(user.id(), user.employeeId(), user.departmentId(), user.roles());
+        String accessToken = jwtService.issue(principal);
+        record(user.id(), "REFRESH", "SYS_USER", user.id(), "SUCCESS");
+        return new AuthResponse(accessToken, Instant.now().plus(jwtService.expiration()),
+                AuthUser.from(user), rotated.refreshToken());
     }
 
     @Transactional
