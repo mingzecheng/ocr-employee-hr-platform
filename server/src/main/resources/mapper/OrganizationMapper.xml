@@ -117,4 +117,28 @@
             WHERE p.id = #{positionId} AND p.department_id = #{departmentId} AND p.enabled = TRUE
         )
     </select>
+
+    <select id="countChildren" resultType="int">
+        SELECT COUNT(1) FROM org_department WHERE parent_id = #{departmentId}
+    </select>
+
+    <select id="countPositions" resultType="int">
+        SELECT COUNT(1) FROM org_position WHERE department_id = #{departmentId}
+    </select>
+
+    <select id="countEmployeesByDepartment" resultType="int">
+        SELECT COUNT(1) FROM employee WHERE department_id = #{departmentId}
+    </select>
+
+    <select id="countActiveEmployeesByPosition" resultType="int">
+        SELECT COUNT(1) FROM employee WHERE position_id = #{positionId} AND status = 'ACTIVE'
+    </select>
+
+    <delete id="deleteDepartment">
+        DELETE FROM org_department WHERE id = #{id}
+    </delete>
+
+    <delete id="deletePosition">
+        DELETE FROM org_position WHERE department_id = #{departmentId} AND id = #{id}
+    </delete>
 </mapper>

@@ -48,4 +48,16 @@ public interface OrganizationMapper {
 
     boolean isEnabledPosition(@Param("positionId") Long positionId,
                               @Param("departmentId") Long departmentId);
+
+    int countChildren(@Param("departmentId") Long departmentId);
+
+    int countPositions(@Param("departmentId") Long departmentId);
+
+    int countEmployeesByDepartment(@Param("departmentId") Long departmentId);
+
+    int countActiveEmployeesByPosition(@Param("positionId") Long positionId);
+
+    int deleteDepartment(@Param("id") Long id);
+
+    int deletePosition(@Param("departmentId") Long departmentId, @Param("id") Long id);
 }

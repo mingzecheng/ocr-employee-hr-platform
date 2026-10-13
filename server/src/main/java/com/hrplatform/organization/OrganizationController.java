@@ -5,6 +5,7 @@ import com.hrplatform.common.web.ApiResponse;
 import jakarta.validation.Valid;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -86,5 +87,24 @@ public class OrganizationController {
         JwtPrincipal principal = (JwtPrincipal) authentication.getPrincipal();
         return ApiResponse.success(
                 service.updatePosition(departmentId, positionId, request, principal.userId()), "unknown");
+    }
+
+    @DeleteMapping("/{departmentId}")
+    @PreAuthorize("hasRole('SYSTEM_ADMIN')")
+    public ApiResponse<Void> deleteDepartment(@PathVariable Long departmentId, Authentication authentication) {
+        JwtPrincipal principal = (JwtPrincipal) authentication.getPrincipal();
+        service.deleteDepartment(departmentId, principal.userId());
+        return ApiResponse.success(null, "unknown");
+    }
+
+    @DeleteMapping("/{departmentId}/positions/{positionId}")
+    @PreAuthorize("hasRole('SYSTEM_ADMIN')")
+    public ApiResponse<Void> deletePosition(
+            @PathVariable Long departmentId,
+            @PathVariable Long positionId,
+            Authentication authentication) {
+        JwtPrincipal principal = (JwtPrincipal) authentication.getPrincipal();
+        service.deletePosition(departmentId, positionId, principal.userId());
+        return ApiResponse.success(null, "unknown");
     }
 }

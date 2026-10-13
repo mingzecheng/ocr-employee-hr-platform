@@ -152,6 +152,44 @@ public class OrganizationService {
         return updated;
     }
 
+    @Transactional
+    public void deleteDepartment(Long id, Long operatorId) {
+        DepartmentAdminView department = requireDepartment(id);
+        int children = mapper.countChildren(id);
+        if (children > 0) {
+            throw new OrganizationDeletionException("请先删除或迁移 " + children + " 个子部门");
+        }
+        int positions = mapper.countPositions(id);
+        if (positions > 0) {
+            throw new OrganizationDeletionException("请先删除该部门下的 " + positions + " 个岗位");
+        }
+        int employees = mapper.countEmployeesByDepartment(id);
+        if (employees > 0) {
+            throw new OrganizationDeletionException("请先迁移或删除该部门下的 " + employees + " 名员工");
+        }
+        if (mapper.deleteDepartment(id) != 1) {
+            throw new OrganizationStateException("部门已被其他操作修改或不存在");
+        }
+        record(operatorId, "DELETE", "ORG_DEPARTMENT", id, department.name());
+    }
+
+    @Transactional
+    public void deletePosition(Long departmentId, Long positionId, Long operatorId) {
+        requireDepartment(departmentId);
+        PositionAdminView position = mapper.findPosition(positionId);
+        if (position == null || !departmentId.equals(position.departmentId())) {
+            throw new OrganizationStateException("岗位不存在或不属于指定部门");
+        }
+        int activeEmployees = mapper.countActiveEmployeesByPosition(positionId);
+        if (activeEmployees > 0) {
+            throw new OrganizationDeletionException("请先迁移该岗位下的 " + activeEmployees + " 名在职员工");
+        }
+        if (mapper.deletePosition(departmentId, positionId) != 1) {
+            throw new OrganizationStateException("岗位已被其他操作修改或不存在");
+        }
+        record(operatorId, "DELETE", "ORG_POSITION", positionId, position.name());
+    }
+
     private DepartmentMutationRequest normalize(DepartmentMutationRequest request) {
         if (request == null || !StringUtils.hasText(request.code()) || !CODE.matcher(request.code().trim()).matches()
                 || !StringUtils.hasText(request.name()) || request.name().trim().length() > 128
@@ -223,8 +261,12 @@ public class OrganizationService {
     }
 
     private void record(Long operatorId, String action, String objectType, Long objectId) {
+        record(operatorId, action, objectType, objectId, null);
+    }
+
+    private void record(Long operatorId, String action, String objectType, Long objectId, String beforeSummary) {
         if (operationLogService != null) {
-            operationLogService.record(operatorId, action, objectType, objectId, "SUCCESS");
+            operationLogService.record(operatorId, action, objectType, objectId, "SUCCESS", beforeSummary, null);
         }
     }
 

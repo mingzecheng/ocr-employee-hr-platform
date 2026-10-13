@@ -30,6 +30,7 @@ import com.hrplatform.common.idempotency.IdempotentReplayException;
 import com.hrplatform.access.ArchiveAccessStateException;
 import com.hrplatform.inventory.InventoryStateException;
 import com.hrplatform.organization.OrganizationStateException;
+import com.hrplatform.organization.OrganizationDeletionException;
 import com.hrplatform.auth.AccountAdminStateException;
 
 import java.util.stream.Collectors;
@@ -66,6 +67,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiResponse<Void>> illegalArgument(IllegalArgumentException exception, HttpServletRequest request) {
         return ResponseEntity.badRequest().body(ApiResponse.failure("VALIDATION_ERROR", exception.getMessage(), traceId(request)));
+    }
+
+    @ExceptionHandler(OrganizationDeletionException.class)
+    public ResponseEntity<ApiResponse<Void>> deletionConflict(OrganizationDeletionException exception, HttpServletRequest request) {
+        recordFailure(request, "DELETE_CONFLICT");
+        return ResponseEntity.badRequest()
+                .body(ApiResponse.failure("DELETE_CONFLICT", exception.getMessage(), traceId(request)));
     }
 
     @ExceptionHandler(InvalidCredentialsException.class)

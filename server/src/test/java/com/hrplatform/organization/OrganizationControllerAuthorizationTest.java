@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Set;
 
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -52,6 +53,27 @@ class OrganizationControllerAuthorizationTest {
                                  "sortOrder":1,"enabled":true}
                                 """))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void hrAdminCannotDeleteDepartment() throws Exception {
+        mockMvc.perform(delete("/api/departments/1")
+                        .header("Authorization", bearer("HR_ADMIN")))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void systemAdminCanDeleteDepartment() throws Exception {
+        mockMvc.perform(delete("/api/departments/1")
+                        .header("Authorization", bearer("SYSTEM_ADMIN")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void systemAdminCanDeletePosition() throws Exception {
+        mockMvc.perform(delete("/api/departments/1/positions/2")
+                        .header("Authorization", bearer("SYSTEM_ADMIN")))
+                .andExpect(status().isOk());
     }
 
     private String bearer(String role) {

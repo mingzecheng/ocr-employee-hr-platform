@@ -1,10 +1,14 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
-import { ElMessage } from 'element-plus'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance } from 'element-plus'
-import { Edit, Plus, Refresh } from '@element-plus/icons-vue'
+import { Delete, Edit, Plus, Refresh } from '@element-plus/icons-vue'
 import { request, type DepartmentAdmin, type PositionAdmin } from '../api/http'
 import { boundedNumber, maxLength, patternRule, positiveId, requiredText } from '../utils/live-validation'
+import { useAuthStore } from '../stores/auth'
+
+const auth = useAuthStore()
+const isSystemAdmin = computed(() => auth.roles.includes('SYSTEM_ADMIN'))
 
 const loading = ref(false)
 const saving = ref(false)
@@ -92,6 +96,38 @@ async function savePosition() {
 }
 
 onMounted(loadDepartments)
+
+async function confirmDeleteDepartment(department: DepartmentAdmin) {
+  try {
+    await ElMessageBox.confirm(
+      `确认删除部门「${department.name}」？删除后不可恢复，如有子部门、岗位或员工将被拒绝。`,
+      '删除部门',
+      { type: 'warning', confirmButtonText: '确认删除', cancelButtonText: '取消', confirmButtonClass: 'el-button--danger' },
+    )
+  } catch { return }
+  try {
+    await request({ url: `/departments/${department.id}`, method: 'DELETE' })
+    ElMessage.success('部门已删除')
+    if (selectedDepartmentId.value === department.id) selectedDepartmentId.value = null
+    await loadDepartments()
+  } catch (error) { ElMessage.error(error instanceof Error ? error.message : '部门删除失败') }
+}
+
+async function confirmDeletePosition(position: PositionAdmin) {
+  if (!selectedDepartmentId.value) return
+  try {
+    await ElMessageBox.confirm(
+      `确认删除岗位「${position.name}」？如有在职员工将被拒绝。`,
+      '删除岗位',
+      { type: 'warning', confirmButtonText: '确认删除', cancelButtonText: '取消', confirmButtonClass: 'el-button--danger' },
+    )
+  } catch { return }
+  try {
+    await request({ url: `/departments/${selectedDepartmentId.value}/positions/${position.id}`, method: 'DELETE' })
+    ElMessage.success('岗位已删除')
+    await loadPositions(selectedDepartmentId.value)
+  } catch (error) { ElMessage.error(error instanceof Error ? error.message : '岗位删除失败') }
+}
 </script>
 
 <template>
@@ -107,7 +143,7 @@ onMounted(loadDepartments)
         <el-table-column prop="name" label="部门名称" min-width="150" />
         <el-table-column prop="parentId" label="上级 ID" width="90"><template #default="scope">{{ scope.row.parentId || '根部门' }}</template></el-table-column>
         <el-table-column prop="enabled" label="状态" width="90"><template #default="scope"><el-tag :type="scope.row.enabled ? 'success' : 'info'" effect="plain">{{ scope.row.enabled ? '启用' : '停用' }}</el-tag></template></el-table-column>
-        <el-table-column label="操作" width="78"><template #default="scope"><el-button link type="primary" title="编辑部门" @click="openDepartment(scope.row as DepartmentAdmin)"><el-icon><Edit /></el-icon></el-button></template></el-table-column>
+        <el-table-column label="操作" width="112"><template #default="scope"><el-button link type="primary" title="编辑部门" @click="openDepartment(scope.row as DepartmentAdmin)"><el-icon><Edit /></el-icon></el-button><el-button v-if="isSystemAdmin" link type="danger" title="删除部门" @click="confirmDeleteDepartment(scope.row as DepartmentAdmin)"><el-icon><Delete /></el-icon></el-button></template></el-table-column>
       </el-table>
     </section>
     <section class="surface-panel table-panel">
@@ -116,7 +152,7 @@ onMounted(loadDepartments)
         <el-table-column prop="code" label="编码" width="145"><template #default="scope"><code class="employee-code">{{ scope.row.code }}</code></template></el-table-column>
         <el-table-column prop="name" label="岗位名称" min-width="160" />
         <el-table-column prop="enabled" label="状态" width="90"><template #default="scope"><el-tag :type="scope.row.enabled ? 'success' : 'info'" effect="plain">{{ scope.row.enabled ? '启用' : '停用' }}</el-tag></template></el-table-column>
-        <el-table-column label="操作" width="78"><template #default="scope"><el-button link type="primary" title="编辑岗位" @click="openPosition(scope.row as PositionAdmin)"><el-icon><Edit /></el-icon></el-button></template></el-table-column>
+        <el-table-column label="操作" width="112"><template #default="scope"><el-button link type="primary" title="编辑岗位" @click="openPosition(scope.row as PositionAdmin)"><el-icon><Edit /></el-icon></el-button><el-button v-if="isSystemAdmin" link type="danger" title="删除岗位" @click="confirmDeletePosition(scope.row as PositionAdmin)"><el-icon><Delete /></el-icon></el-button></template></el-table-column>
       </el-table>
     </section>
   </div>
