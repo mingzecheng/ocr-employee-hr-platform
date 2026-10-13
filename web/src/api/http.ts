@@ -59,7 +59,40 @@ export type TodoType = 'HR_REQUEST_APPROVAL' | 'ARCHIVE_ACCESS_APPROVAL' | 'ARCH
 export type TodoPriority = 'HIGH' | 'MEDIUM' | 'LOW'
 export interface TodoItem { id: number; type: TodoType; title: string; resourceId: number; status: string; priority: TodoPriority; dueAt?: string | null; createdAt?: string | null; targetPath: string }
 export interface TodoData { items: TodoItem[]; total: number; pendingApprovalCount: number; dueSoonCount: number; overdueCount: number; ocrFailedCount: number; generatedAt: string }
-export interface OperationLog { id: number; operatorId?: number; action: string; objectType: string; objectId?: number; result: string; traceId: string; beforeSummary?: string | null; afterSummary?: string | null; createdAt: string }
+export interface OperationLog {
+  id: number
+  operatorId?: number | null
+  operatorName?: string | null
+  action: string
+  objectType: string
+  objectId?: number | null
+  result: string
+  traceId?: string | null
+  beforeSummary?: string | null
+  afterSummary?: string | null
+  createdAt: string
+  /** 列表返回的脱敏 IP（如 192.168.x.x），完整 IP 仅在详情接口下发。 */
+  clientIpMasked?: string | null
+}
+/** GET /api/audit/{id} 单条审计日志完整信息（含风控指纹），仅 SYSTEM_ADMIN 可访问。 */
+export interface AuditLogDetail {
+  id: number
+  operatorId?: number | null
+  operatorName?: string | null
+  action: string
+  objectType: string
+  objectId?: number | null
+  result: string
+  createdAt: string
+  traceId?: string | null
+  clientIp?: string | null
+  userAgent?: string | null
+  requestMethod?: string | null
+  requestUri?: string | null
+  sessionId?: string | null
+  beforeSummary?: string | null
+  afterSummary?: string | null
+}
 export interface InventoryTask { id: number; taskNo: string; status: string; initiatorId?: number }
 export interface InventoryItem {
   id: number; taskId: number; expectedVersionId: number; expectedVersionNo: number
