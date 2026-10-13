@@ -1,26 +1,20 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHashHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHashHistory(),
   routes: [
-    { path: '/login', component: () => import('../views/LoginView.vue'), meta: { public: true } },
-    { path: '/', redirect: '/dashboard' },
-    { path: '/dashboard', component: () => import('../views/DashboardView.vue') },
-    { path: '/employees', component: () => import('../views/EmployeeListView.vue') },
-    { path: '/employees/:id/archive', component: () => import('../views/EmployeeArchiveView.vue') },
-    { path: '/ocr/:versionId', component: () => import('../views/OcrReviewView.vue') },
-    { path: '/workflows', component: () => import('../views/WorkflowView.vue') },
-    { path: '/archive-access', component: () => import('../views/ArchiveAccessView.vue') },
-    { path: '/inventory', component: () => import('../views/InventoryView.vue') },
-    { path: '/audit-logs', component: () => import('../views/AuditLogView.vue') },
+    { path: '/login', component: () => import('../views/LoginView.vue'), meta: { public: true, title: '登录' } },
+    { path: '/register', component: () => import('../views/RegisterView.vue'), meta: { public: true, title: '员工注册' } },
+    { path: '/workspaces', component: () => import('../views/WorkspaceSelectView.vue'), meta: { title: '选择工作台' } },
+    { path: '/', redirect: '/workspaces' },
   ],
 })
 
 router.beforeEach((to) => {
   const auth = useAuthStore()
-  if (to.meta.public) return auth.signedIn && to.path === '/login' ? '/dashboard' : true
-  if (!auth.signedIn) return { path: '/login', query: { redirect: to.fullPath } }
+  if (to.meta.public) return auth.signedIn && ['/login', '/register'].includes(to.path) ? '/workspaces' : true
+  if (!auth.signedIn) return '/login'
   return true
 })
 

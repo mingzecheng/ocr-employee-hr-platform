@@ -1,6 +1,6 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
-import { request, type AuthResponse, type AuthUser } from '../api/http'
+import { request, type AuthResponse, type AuthUser, type RegisterInput } from '../api/http'
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref(sessionStorage.getItem('hr.accessToken') || '')
@@ -10,6 +10,13 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function login(username: string, password: string) {
     const data = await request<AuthResponse>({ url: '/auth/login', method: 'POST', data: { username, password } })
+    persist(data)
+  }
+  async function register(input: RegisterInput) {
+    const data = await request<AuthResponse>({ url: '/auth/register', method: 'POST', data: input })
+    persist(data)
+  }
+  function persist(data: AuthResponse) {
     token.value = data.accessToken
     user.value = data.user
     sessionStorage.setItem('hr.accessToken', data.accessToken)
@@ -22,5 +29,5 @@ export const useAuthStore = defineStore('auth', () => {
     sessionStorage.removeItem('hr.user')
   }
   function canAccess(allowed: string[]) { return allowed.length === 0 || roles.value.some((role) => allowed.includes(role)) }
-  return { token, user, signedIn, roles, login, logout, canAccess }
+  return { token, user, signedIn, roles, login, register, logout, canAccess }
 })
