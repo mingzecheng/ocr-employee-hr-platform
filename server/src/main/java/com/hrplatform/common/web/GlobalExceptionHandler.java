@@ -30,6 +30,7 @@ import com.hrplatform.ocr.OcrPreviewMissingException;
 import com.hrplatform.workflow.RequestStateException;
 import com.hrplatform.common.idempotency.IdempotentReplayException;
 import com.hrplatform.access.ArchiveAccessStateException;
+import com.hrplatform.audit.OperationLogNotFoundException;
 import com.hrplatform.inventory.InventoryStateException;
 import com.hrplatform.organization.OrganizationStateException;
 import com.hrplatform.organization.OrganizationDeletionException;
@@ -104,7 +105,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler({DataScopeDeniedException.class, ArchiveReadDeniedException.class, OcrBindingNotFoundException.class,
-            OcrFieldNotFoundException.class, OcrPreviewMissingException.class})
+            OcrFieldNotFoundException.class, OcrPreviewMissingException.class, OperationLogNotFoundException.class})
     public ResponseEntity<ApiResponse<Void>> notFoundOrDenied(RuntimeException exception, HttpServletRequest request) {
         boolean denied = exception instanceof DataScopeDeniedException || exception instanceof ArchiveReadDeniedException;
         String code = denied ? "FORBIDDEN" : "NOT_FOUND";

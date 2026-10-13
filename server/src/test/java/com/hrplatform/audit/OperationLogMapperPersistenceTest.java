@@ -35,7 +35,12 @@ class OperationLogMapperPersistenceTest {
                     before_summary CLOB,
                     after_summary CLOB,
                     trace_id VARCHAR(64),
-                    created_at TIMESTAMP NOT NULL
+                    created_at TIMESTAMP NOT NULL,
+                    client_ip VARCHAR(45),
+                    user_agent VARCHAR(512),
+                    request_method VARCHAR(10),
+                    request_uri VARCHAR(512),
+                    session_id VARCHAR(128)
                 )
                 """);
     }
@@ -48,20 +53,26 @@ class OperationLogMapperPersistenceTest {
         insert(13L, LocalDateTime.parse("2026-10-12T00:00:00"), "status=APPROVED", "status=EXPIRED");
 
         AuditPage page = new AuditController(mapper).list(null, "STATE_CHANGE", "HR_REQUEST", "SUCCESS",
-                LocalDate.parse("2026-10-10"), LocalDate.parse("2026-10-11"), 2, 1, null).data();
+                LocalDate.parse("2026-10-10"), LocalDate.parse("2026-10-11"), 2, 1).data();
 
         assertThat(page.total()).isEqualTo(3);
         assertThat(page.page()).isEqualTo(2);
         assertThat(page.pageSize()).isEqualTo(1);
         assertThat(page.items()).singleElement().satisfies(record -> {
-            assertThat(record.beforeSummary()).isEqualTo("status=PENDING");
-            assertThat(record.afterSummary()).isEqualTo("status=APPROVED");
+            assertThat(record.action()).isEqualTo("STATE_CHANGE");
             assertThat(record.createdAt()).isEqualTo(LocalDateTime.parse("2026-10-11T00:00:00"));
+            assertThat(record.clientIpMasked()).isNull();
         });
+
+        // 变更前后快照与风控指纹只在详情中可见。
+        OperationLogRecord detail = mapper.findById(page.items().get(0).id());
+        assertThat(detail.beforeSummary()).isEqualTo("status=PENDING");
+        assertThat(detail.afterSummary()).isEqualTo("status=APPROVED");
     }
 
     private void insert(Long objectId, LocalDateTime createdAt, String beforeSummary, String afterSummary) {
         mapper.insert(new OperationLogRecord(null, 99L, "STATE_CHANGE", "HR_REQUEST", objectId,
-                beforeSummary, afterSummary, "SUCCESS", "trace-audit-test", createdAt));
+                beforeSummary, afterSummary, "SUCCESS", "trace-audit-test", createdAt,
+                null, null, null, null, null));
     }
 }

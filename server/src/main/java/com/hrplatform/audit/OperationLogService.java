@@ -28,7 +28,9 @@ public class OperationLogService {
         log.info("operation operatorId={} action={} objectType={} objectId={} result={}",
                 operatorId, action, objectType, objectId, result);
         String traceId = MDC.get(TraceIdFilter.HEADER);
+        RiskFields risk = RiskFieldsExtractor.current();
         mapper.insert(new OperationLogRecord(null, operatorId, action, objectType, objectId,
-                beforeSummary, afterSummary, result, traceId == null ? "unknown" : traceId, LocalDateTime.now()));
+                beforeSummary, afterSummary, result, traceId == null ? "unknown" : traceId, LocalDateTime.now(),
+                risk.clientIp(), risk.userAgent(), risk.requestMethod(), risk.requestUri(), risk.sessionId()));
     }
 }

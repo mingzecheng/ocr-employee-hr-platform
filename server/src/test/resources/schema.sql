@@ -8,5 +8,10 @@ CREATE TABLE IF NOT EXISTS operation_log (
     before_summary CLOB,
     after_summary CLOB,
     trace_id VARCHAR(64),
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    client_ip VARCHAR(45),
+    user_agent VARCHAR(512),
+    request_method VARCHAR(10),
+    request_uri VARCHAR(512),
+    session_id VARCHAR(128)
 );

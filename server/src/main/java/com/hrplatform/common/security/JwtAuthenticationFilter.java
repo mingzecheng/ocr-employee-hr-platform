@@ -6,6 +6,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.MDC;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -35,10 +36,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         this.blacklist = blacklist;
     }
 
+    /** 与 RiskFieldsExtractor.MDC_JTI 保持一致，避免 common.security 反向依赖 audit 包。 */
+    private static final String MDC_JTI = "hr.request.jti";
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         String header = request.getHeader("Authorization");
+        boolean boundJti = false;
         if (header != null && header.startsWith("Bearer ")) {
             try {
                 String token = header.substring(7);
@@ -54,11 +59,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         .toList();
                 var authentication = new UsernamePasswordAuthenticationToken(principal, token, authorities);
                 SecurityContextHolder.getContext().setAuthentication(authentication);
+                // 将 JWT jti 写入 MDC，供 OperationLogService 记录会话指纹。
+                MDC.put(MDC_JTI, jwtService.extractJti(token));
+                boundJti = true;
             } catch (JwtAuthenticationException ignored) {
                 SecurityContextHolder.clearContext();
             }
         }
-        filterChain.doFilter(request, response);
+        try {
+            filterChain.doFilter(request, response);
+        } finally {
+            if (boundJti) {
+                MDC.remove(MDC_JTI);
+            }
+        }
     }
 
     private JwtPrincipal resolvePrincipal(String token) {

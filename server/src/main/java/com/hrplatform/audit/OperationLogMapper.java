@@ -18,4 +18,5 @@ public interface OperationLogMapper {
                @Param("objectType") String objectType, @Param("result") String result,
                @Param("fromInclusive") LocalDateTime fromInclusive,
                @Param("toExclusive") LocalDateTime toExclusive);
+    OperationLogRecord findById(@Param("id") Long id);
 }

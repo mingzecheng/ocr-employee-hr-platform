@@ -9,16 +9,22 @@
             <arg column="before_summary" javaType="java.lang.String"/><arg column="after_summary" javaType="java.lang.String"/>
             <arg column="result" javaType="java.lang.String"/>
             <arg column="trace_id" javaType="java.lang.String"/><arg column="created_at" javaType="java.time.LocalDateTime"/>
+            <arg column="client_ip" javaType="java.lang.String"/><arg column="user_agent" javaType="java.lang.String"/>
+            <arg column="request_method" javaType="java.lang.String"/><arg column="request_uri" javaType="java.lang.String"/>
+            <arg column="session_id" javaType="java.lang.String"/>
         </constructor>
     </resultMap>
     <insert id="insert" parameterType="com.hrplatform.audit.OperationLogRecord">
         INSERT INTO operation_log (operator_id, action, object_type, object_id, before_summary, after_summary,
-                                   result, trace_id, created_at)
+                                   result, trace_id, created_at,
+                                   client_ip, user_agent, request_method, request_uri, session_id)
         VALUES (#{operatorId}, #{action}, #{objectType}, #{objectId}, #{beforeSummary}, #{afterSummary},
-                #{result}, #{traceId}, #{createdAt})
+                #{result}, #{traceId}, #{createdAt},
+                #{clientIp}, #{userAgent}, #{requestMethod}, #{requestUri}, #{sessionId})
     </insert>
     <select id="list" resultMap="LogMap">
-        SELECT id, operator_id, action, object_type, object_id, before_summary, after_summary, result, trace_id, created_at
+        SELECT id, operator_id, action, object_type, object_id, before_summary, after_summary, result, trace_id,
+               created_at, client_ip, user_agent, request_method, request_uri, session_id
         FROM operation_log WHERE 1 = 1
         <if test="operatorId != null">AND operator_id = #{operatorId}</if>
         <if test="action != null and action != ''">AND action = #{action}</if>
@@ -36,5 +42,10 @@
         <if test="result != null and result != ''">AND result = #{result}</if>
         <if test="fromInclusive != null">AND created_at &gt;= #{fromInclusive}</if>
         <if test="toExclusive != null">AND created_at &lt; #{toExclusive}</if>
+    </select>
+    <select id="findById" resultMap="LogMap">
+        SELECT id, operator_id, action, object_type, object_id, before_summary, after_summary, result, trace_id,
+               created_at, client_ip, user_agent, request_method, request_uri, session_id
+        FROM operation_log WHERE id = #{id}
     </select>
 </mapper>
