@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hrplatform.workflow.TodoMapper">
+    <resultMap id="TodoRowMap" type="com.hrplatform.workflow.TodoMapper$TodoRow">
+        <constructor>
+            <idArg column="id" javaType="java.lang.Long"/>
+            <arg column="title" javaType="java.lang.String"/>
+            <arg column="resource_id" javaType="java.lang.Long"/>
+            <arg column="employee_id" javaType="java.lang.Long"/>
+            <arg column="status" javaType="java.lang.String"/>
+            <arg column="due_at" javaType="java.time.LocalDateTime"/>
+            <arg column="created_at" javaType="java.time.LocalDateTime"/>
+        </constructor>
+    </resultMap>
+
+    <sql id="hrScope">
+        <choose>
+            <when test="scopeType == 'ALL'">1 = 1</when>
+            <when test="scopeType == 'DEPARTMENT'">r.approval_department_id = #{departmentId}</when>
+            <when test="scopeType == 'EMPLOYEE'">r.employee_id = #{employeeId}</when>
+            <otherwise>1 = 0</otherwise>
+        </choose>
+    </sql>
+
+    <select id="findPendingHrRequests" resultMap="TodoRowMap">
+        SELECT r.id,
+               CASE r.request_type
+                   WHEN 'ONBOARDING' THEN '入职申请'
+                   WHEN 'TRANSFER' THEN '转岗调动申请'
+                   WHEN 'LEAVE' THEN '请假申请'
+                   WHEN 'OFFBOARDING' THEN '离职交接申请'
+                   ELSE '人事申请'
+               END AS title,
+               r.id AS resource_id, r.employee_id, r.status,
+               NULL AS due_at, r.created_at
+        FROM hr_request r
+        WHERE (<include refid="hrScope"/>)
+          AND ((r.status = 'PENDING_DEPT_APPROVAL' AND r.current_node = 'DEPARTMENT'
+                AND #{allowDepartmentApproval} = TRUE)
+            OR (r.status = 'PENDING_HR_APPROVAL' AND r.current_node = 'HR'
+                AND #{allowHrApproval} = TRUE))
+        ORDER BY r.created_at DESC, r.id DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="findPendingArchiveAccess" resultMap="TodoRowMap">
+        SELECT a.id,
+               CASE a.use_type
+                   WHEN 'READ' THEN '查阅档案申请'
+                   WHEN 'BORROW' THEN '借用档案申请'
+                   WHEN 'HANDOVER' THEN '移交档案申请'
+                   ELSE '档案访问申请'
+               END AS title,
+               a.id AS resource_id,
+               NULL AS employee_id, a.status, NULL AS due_at, a.created_at
+        FROM archive_access_application a
+        WHERE a.status = 'PENDING_APPROVAL'
+          AND #{allowHrApproval} = TRUE
+          AND (<choose>
+              <when test="scopeType == 'ALL'">1 = 1</when>
+              <when test="scopeType == 'DEPARTMENT'">a.department_id = #{departmentId}</when>
+              <when test="scopeType == 'EMPLOYEE'">
+                  EXISTS (SELECT 1 FROM sys_user u WHERE u.id = a.applicant_id AND u.employee_id = #{employeeId})
+              </when>
+              <otherwise>1 = 0</otherwise>
+          </choose>)
+        ORDER BY a.created_at DESC, a.id DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="findDueUses" resultMap="TodoRowMap">
+        SELECT u.id, CONCAT('档案归还 · ', a.application_no) AS title, a.id AS resource_id,
+               NULL AS employee_id, a.status, a.due_at, u.used_at AS created_at
+        FROM archive_use_record u
+        JOIN archive_access_application a ON a.id = u.application_id
+        WHERE u.id = (SELECT MAX(u2.id) FROM archive_use_record u2
+                      WHERE u2.application_id = a.id)
+          AND ((a.status = 'IN_USE' AND u.returned_at IS NULL
+                AND a.due_at &lt;= #{dueSoonUntil})
+            OR a.status = 'ABNORMAL')
+          AND (<choose>
+              <when test="scopeType == 'ALL'">1 = 1</when>
+              <when test="scopeType == 'DEPARTMENT'">a.department_id = #{departmentId}</when>
+              <when test="scopeType == 'EMPLOYEE'">
+                  EXISTS (SELECT 1 FROM sys_user u2 WHERE u2.id = a.applicant_id AND u2.employee_id = #{employeeId})
+              </when>
+              <otherwise>1 = 0</otherwise>
+          </choose>)
+        ORDER BY a.due_at ASC, u.used_at DESC, u.id DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="findFailedOcr" resultMap="TodoRowMap">
+        SELECT b.id, 'OCR识别失败' AS title, v.id AS resource_id, e.id AS employee_id,
+               b.status, NULL AS due_at, b.updated_at AS created_at
+        FROM ocr_binding b
+        JOIN archive_version v ON v.id = b.archive_version_id
+        JOIN archive_document d ON d.id = v.document_id
+        JOIN employee e ON e.id = d.employee_id
+        WHERE b.status = 'FAILED'
+          AND (<choose>
+              <when test="scopeType == 'ALL'">1 = 1</when>
+              <when test="scopeType == 'DEPARTMENT'">e.department_id = #{departmentId}</when>
+              <when test="scopeType == 'EMPLOYEE'">e.id = #{employeeId}</when>
+              <otherwise>1 = 0</otherwise>
+          </choose>)
+        ORDER BY b.updated_at DESC, b.id DESC
+        LIMIT #{limit}
+    </select>
+</mapper>

@@ -3,6 +3,7 @@ package com.hrplatform.archive;
 import io.minio.GetObjectArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
+import io.minio.RemoveObjectArgs;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -44,6 +45,15 @@ public class MinioObjectStorage implements ObjectStorage {
             throw new StorageException("对象存储读取失败", exception);
         } catch (Exception exception) {
             throw new StorageException("对象存储读取失败", exception);
+        }
+    }
+
+    @Override
+    public void delete(String objectKey) {
+        try {
+            client.removeObject(RemoveObjectArgs.builder().bucket(bucket).object(objectKey).build());
+        } catch (Exception exception) {
+            throw new StorageException("对象存储删除失败", exception);
         }
     }
 }

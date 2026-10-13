@@ -1,0 +1,46 @@
+server:
+  forward-headers-strategy: framework
+  shutdown: graceful
+  error:
+    include-message: never
+    include-stacktrace: never
+
+spring:
+  lifecycle:
+    timeout-per-shutdown-phase: 2m
+  datasource:
+    master:
+      url: ${MYSQL_URL}
+      username: ${MYSQL_USERNAME}
+      password: ${MYSQL_PASSWORD}
+      driver-class-name: com.mysql.cj.jdbc.Driver
+    # Real read replica in production; falls back to the master URL when MYSQL_REPLICA_URL is unset.
+    replica:
+      url: ${MYSQL_REPLICA_URL:${MYSQL_URL}}
+      username: ${MYSQL_REPLICA_USERNAME:${MYSQL_USERNAME}}
+      password: ${MYSQL_REPLICA_PASSWORD:${MYSQL_PASSWORD}}
+      driver-class-name: com.mysql.cj.jdbc.Driver
+  flyway:
+    placeholders:
+      demoAccountsEnabled: false
+
+management:
+  endpoint:
+    health:
+      show-details: never
+
+platform:
+  demo-accounts-enabled: false
+  bootstrap:
+    admin-username: ${BOOTSTRAP_ADMIN_USERNAME:}
+    admin-password: ${BOOTSTRAP_ADMIN_PASSWORD:}
+  jwt:
+    secret: ${JWT_SECRET}
+  ocr:
+    base-url: ${OCR_BASE_URL}
+    internal-token: ${OCR_INTERNAL_TOKEN}
+  storage:
+    endpoint: ${MINIO_ENDPOINT}
+    access-key: ${MINIO_ACCESS_KEY}
+    secret-key: ${MINIO_SECRET_KEY}
+    bucket: ${MINIO_BUCKET}

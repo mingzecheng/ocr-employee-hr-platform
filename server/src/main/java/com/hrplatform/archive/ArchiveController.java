@@ -7,6 +7,7 @@ import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -28,6 +29,7 @@ public class ArchiveController {
     }
 
     @PostMapping(value = "/employees/{employeeId}/documents", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('HR_ADMIN')")
     public ApiResponse<ArchiveVersion> upload(
             @PathVariable Long employeeId,
             @RequestPart String documentType,
@@ -41,6 +43,7 @@ public class ArchiveController {
     }
 
     @GetMapping("/employees/{employeeId}/documents")
+    @PreAuthorize("hasAnyRole('EMPLOYEE','DEPT_MANAGER','HR_ADMIN')")
     public ApiResponse<ArchiveDocumentPage> documents(@PathVariable Long employeeId,
                                                        @RequestParam(defaultValue = "1") int page,
                                                        @RequestParam(defaultValue = "20") int pageSize,
@@ -50,6 +53,7 @@ public class ArchiveController {
     }
 
     @GetMapping("/documents/{documentId}/versions")
+    @PreAuthorize("hasAnyRole('EMPLOYEE','DEPT_MANAGER','HR_ADMIN')")
     public ApiResponse<ArchiveVersionPage> versions(@PathVariable Long documentId,
                                                     @RequestParam(defaultValue = "1") int page,
                                                     @RequestParam(defaultValue = "20") int pageSize,
@@ -59,6 +63,7 @@ public class ArchiveController {
     }
 
     @GetMapping("/versions/{versionId}/download")
+    @PreAuthorize("hasAnyRole('EMPLOYEE','DEPT_MANAGER','HR_ADMIN')")
     public void download(@PathVariable Long versionId, Authentication authentication, HttpServletResponse response) throws IOException {
         JwtPrincipal principal = (JwtPrincipal) authentication.getPrincipal();
         ArchiveDownload download = service.download(versionId, principal.dataScope());

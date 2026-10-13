@@ -2,9 +2,11 @@ package com.hrplatform.access;
 
 import com.hrplatform.common.security.JwtPrincipal;
 import com.hrplatform.common.web.ApiResponse;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Size;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -22,35 +24,64 @@ public class ArchiveAccessController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('EMPLOYEE','DEPT_MANAGER','HR_ADMIN')")
     public ApiResponse<ArchiveAccessApplication> create(@Valid @RequestBody AccessCreateRequest request,
                                                         Authentication authentication) {
         return ApiResponse.success(service.create(request, actor(authentication)), "unknown");
     }
 
     @PostMapping("/{id}/submit")
+    @PreAuthorize("hasAnyRole('EMPLOYEE','DEPT_MANAGER','HR_ADMIN')")
     public ApiResponse<ArchiveAccessApplication> submit(@PathVariable Long id, Authentication authentication) {
         return ApiResponse.success(service.submit(id, actor(authentication)), "unknown");
     }
 
     @PostMapping("/{id}/approve")
+    @PreAuthorize("hasRole('HR_ADMIN')")
     public ApiResponse<ArchiveAccessApplication> approve(@PathVariable Long id, Authentication authentication) {
         return ApiResponse.success(service.approve(id, actor(authentication)), "unknown");
     }
 
+    @PostMapping("/{id}/reject")
+    @PreAuthorize("hasRole('HR_ADMIN')")
+    public ApiResponse<ArchiveAccessApplication> reject(@PathVariable Long id,
+                                                        @Valid @RequestBody RejectRequest request,
+                                                        Authentication authentication) {
+        return ApiResponse.success(service.reject(id, request.reason(), actor(authentication)), "unknown");
+    }
+
     @PostMapping("/{id}/use")
+    @PreAuthorize("hasAnyRole('EMPLOYEE','DEPT_MANAGER','HR_ADMIN')")
     public ApiResponse<ArchiveAccessApplication> use(@PathVariable Long id, Authentication authentication) {
         return ApiResponse.success(service.use(id, actor(authentication)), "unknown");
     }
 
     @PostMapping("/{id}/return")
+    @PreAuthorize("hasAnyRole('EMPLOYEE','DEPT_MANAGER','HR_ADMIN')")
     public ApiResponse<ArchiveAccessApplication> returnAccess(@PathVariable Long id,
                                                                @Valid @RequestBody ReturnRequest request,
                                                                Authentication authentication) {
-        return ApiResponse.success(service.returnAccess(id, actor(authentication), request.abnormal(), request.remark()),
-                "unknown");
+        return ApiResponse.success(service.returnAccess(id, actor(authentication), request.abnormal(),
+                request.remark(), request.handoverToEmployeeId()), "unknown");
+    }
+
+    @PostMapping("/{id}/resolve")
+    @PreAuthorize("hasRole('HR_ADMIN')")
+    public ApiResponse<ArchiveAccessApplication> resolve(@PathVariable Long id,
+                                                          @RequestBody(required = false) ResolveRequest request,
+                                                          Authentication authentication) {
+        return ApiResponse.success(service.resolveAbnormal(id, actor(authentication),
+                request == null ? null : request.remark()), "unknown");
+    }
+
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('EMPLOYEE','DEPT_MANAGER','HR_ADMIN')")
+    public ApiResponse<ArchiveAccessDetail> detail(@PathVariable Long id, Authentication authentication) {
+        return ApiResponse.success(service.detail(id, actor(authentication)), "unknown");
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('EMPLOYEE','DEPT_MANAGER','HR_ADMIN')")
     public ApiResponse<AccessPage> list(@org.springframework.web.bind.annotation.RequestParam(required = false) String status,
                                         @org.springframework.web.bind.annotation.RequestParam(required = false) Long applicantId,
                                         @org.springframework.web.bind.annotation.RequestParam(defaultValue = "1") int page,
@@ -64,6 +95,13 @@ public class ArchiveAccessController {
         return new AccessActor(principal.userId(), principal.roles(), principal.dataScope());
     }
 
-    public record ReturnRequest(boolean abnormal, @Size(max = 512) String remark) {
+    public record ReturnRequest(boolean abnormal, @Size(max = 512) String remark,
+                                Long handoverToEmployeeId) {
+    }
+
+    public record ResolveRequest(@Size(max = 512) String remark) {
+    }
+
+    public record RejectRequest(@NotBlank @Size(max = 512) String reason) {
     }
 }

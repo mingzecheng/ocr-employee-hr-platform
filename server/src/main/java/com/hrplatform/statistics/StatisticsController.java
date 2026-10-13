@@ -1,9 +1,11 @@
 package com.hrplatform.statistics;
 
 import com.hrplatform.common.security.JwtPrincipal;
+import com.hrplatform.common.security.DataScope;
 import com.hrplatform.common.web.ApiResponse;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -21,11 +23,28 @@ public class StatisticsController {
     }
 
     @GetMapping("/overview")
+    @PreAuthorize("hasAnyRole('EMPLOYEE','DEPT_MANAGER','HR_ADMIN','SYSTEM_ADMIN')")
     public ApiResponse<StatisticsOverview> overview(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             Authentication authentication) {
         JwtPrincipal principal = (JwtPrincipal) authentication.getPrincipal();
-        return ApiResponse.success(service.overview(principal.dataScope(), from, to), "unknown");
+        DataScope scope = principal.roles().contains("SYSTEM_ADMIN")
+                ? new DataScope(DataScope.Type.ALL, principal.userId(), principal.employeeId(), principal.departmentId())
+                : principal.dataScope();
+        return ApiResponse.success(service.overview(scope, from, to), "unknown");
+    }
+
+    @GetMapping("/report")
+    @PreAuthorize("hasAnyRole('EMPLOYEE','DEPT_MANAGER','HR_ADMIN','SYSTEM_ADMIN')")
+    public ApiResponse<StatisticsReport> report(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            Authentication authentication) {
+        JwtPrincipal principal = (JwtPrincipal) authentication.getPrincipal();
+        DataScope scope = principal.roles().contains("SYSTEM_ADMIN")
+                ? new DataScope(DataScope.Type.ALL, principal.userId(), principal.employeeId(), principal.departmentId())
+                : principal.dataScope();
+        return ApiResponse.success(service.report(scope, from, to), "unknown");
     }
 }

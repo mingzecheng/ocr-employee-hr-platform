@@ -2,10 +2,12 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.hrplatform.organization.OrganizationMapper">
     <resultMap id="DepartmentMap" type="com.hrplatform.organization.DepartmentNode">
-        <id property="id" column="id" />
-        <result property="code" column="code" />
-        <result property="name" column="name" />
-        <result property="parentId" column="parent_id" />
+        <constructor>
+            <idArg column="id" javaType="java.lang.Long"/>
+            <arg column="code" javaType="java.lang.String"/>
+            <arg column="name" javaType="java.lang.String"/>
+            <arg column="parent_id" javaType="java.lang.Long"/>
+        </constructor>
     </resultMap>
 
     <select id="listEnabledDepartments" resultMap="DepartmentMap">
@@ -13,5 +15,106 @@
         FROM org_department
         WHERE enabled = 1
         ORDER BY sort_order, id
+    </select>
+
+    <select id="listAllDepartments" resultType="com.hrplatform.organization.DepartmentAdminView">
+        SELECT id, code, name, parent_id, manager_employee_id, sort_order, enabled
+        FROM org_department ORDER BY sort_order, id
+    </select>
+
+    <select id="findDepartment" resultType="com.hrplatform.organization.DepartmentAdminView">
+        SELECT id, code, name, parent_id, manager_employee_id, sort_order, enabled
+        FROM org_department WHERE id = #{id} LIMIT 1
+    </select>
+
+    <select id="findDepartmentByCode" resultType="com.hrplatform.organization.DepartmentAdminView">
+        SELECT id, code, name, parent_id, manager_employee_id, sort_order, enabled
+        FROM org_department WHERE code = #{code} LIMIT 1
+    </select>
+
+    <select id="departmentCodeExists" resultType="boolean">
+        SELECT EXISTS (
+            SELECT 1 FROM org_department
+            WHERE code = #{code}
+            <if test="excludeId != null">AND id &lt;&gt; #{excludeId}</if>
+        )
+    </select>
+
+    <select id="isActiveEmployee" resultType="boolean">
+        SELECT EXISTS (SELECT 1 FROM employee WHERE id = #{employeeId} AND status = 'ACTIVE')
+    </select>
+
+    <select id="hasEnabledChildren" resultType="boolean">
+        SELECT EXISTS (SELECT 1 FROM org_department WHERE parent_id = #{departmentId} AND enabled = TRUE)
+    </select>
+
+    <select id="hasActiveEmployees" resultType="boolean">
+        SELECT EXISTS (SELECT 1 FROM employee WHERE department_id = #{departmentId} AND status = 'ACTIVE')
+    </select>
+
+    <update id="clearManagerAssignmentForEmployee">
+        UPDATE org_department SET manager_employee_id = NULL WHERE manager_employee_id = #{employeeId}
+    </update>
+
+    <insert id="insertDepartment" parameterType="com.hrplatform.organization.DepartmentMutationRequest">
+        INSERT INTO org_department (code, name, parent_id, manager_employee_id, sort_order, enabled)
+        VALUES (#{code}, #{name}, #{parentId}, #{managerEmployeeId}, #{sortOrder}, #{enabled})
+    </insert>
+
+    <update id="updateDepartment">
+        UPDATE org_department
+        SET code = #{request.code}, name = #{request.name}, parent_id = #{request.parentId},
+            manager_employee_id = #{request.managerEmployeeId}, sort_order = #{request.sortOrder},
+            enabled = #{request.enabled}
+        WHERE id = #{id}
+    </update>
+
+    <select id="listEnabledPositions" resultType="com.hrplatform.organization.PositionOption">
+        SELECT p.id, p.department_id, p.code, p.name
+        FROM org_position p JOIN org_department d ON d.id = p.department_id AND d.enabled = TRUE
+        WHERE p.department_id = #{departmentId} AND p.enabled = 1
+        ORDER BY p.name, p.id
+    </select>
+
+    <select id="listDepartmentPositions" resultType="com.hrplatform.organization.PositionAdminView">
+        SELECT id, department_id, code, name, enabled
+        FROM org_position WHERE department_id = #{departmentId} ORDER BY name, id
+    </select>
+
+    <select id="findPosition" resultType="com.hrplatform.organization.PositionAdminView">
+        SELECT id, department_id, code, name, enabled
+        FROM org_position WHERE id = #{id} LIMIT 1
+    </select>
+
+    <select id="findPositionByDepartmentAndCode" resultType="com.hrplatform.organization.PositionAdminView">
+        SELECT id, department_id, code, name, enabled
+        FROM org_position WHERE department_id = #{departmentId} AND code = #{code} LIMIT 1
+    </select>
+
+    <select id="positionCodeExists" resultType="boolean">
+        SELECT EXISTS (
+            SELECT 1 FROM org_position
+            WHERE department_id = #{departmentId} AND code = #{code}
+            <if test="excludeId != null">AND id &lt;&gt; #{excludeId}</if>
+        )
+    </select>
+
+    <insert id="insertPosition">
+        INSERT INTO org_position (department_id, code, name, enabled)
+        VALUES (#{departmentId}, #{request.code}, #{request.name}, #{request.enabled})
+    </insert>
+
+    <update id="updatePosition">
+        UPDATE org_position
+        SET code = #{request.code}, name = #{request.name}, enabled = #{request.enabled}
+        WHERE department_id = #{departmentId} AND id = #{id}
+    </update>
+
+    <select id="isEnabledPosition" resultType="boolean">
+        SELECT EXISTS (
+            SELECT 1 FROM org_position p
+            JOIN org_department d ON d.id = p.department_id AND d.enabled = TRUE
+            WHERE p.id = #{positionId} AND p.department_id = #{departmentId} AND p.enabled = TRUE
+        )
     </select>
 </mapper>

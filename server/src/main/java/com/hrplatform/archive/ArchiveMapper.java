@@ -4,7 +4,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 @Mapper
-public interface ArchiveMapper {
+public interface ArchiveMapper extends ArchiveCatalog {
     java.util.List<ArchiveDocument> listDocuments(@Param("employeeId") Long employeeId,
                                                    @Param("departmentId") Long departmentId,
                                                    @Param("scopeType") String scopeType,
@@ -15,13 +15,6 @@ public interface ArchiveMapper {
                          @Param("departmentId") Long departmentId,
                          @Param("scopeType") String scopeType);
 
-    java.util.List<ArchiveVersion> listVersions(@Param("documentId") Long documentId,
-                                                 @Param("employeeId") Long employeeId,
-                                                 @Param("departmentId") Long departmentId,
-                                                 @Param("scopeType") String scopeType,
-                                                 @Param("offset") int offset,
-                                                 @Param("limit") int limit);
-
     long countVersions(@Param("documentId") Long documentId,
                        @Param("employeeId") Long employeeId,
                        @Param("departmentId") Long departmentId,
@@ -31,23 +24,21 @@ public interface ArchiveMapper {
 
     int nextVersionNumber(Long documentId);
 
-    ArchiveDocument insertDocument(ArchiveDocument document);
+    ArchiveDocument findDocumentForUpdate(@Param("employeeId") Long employeeId,
+                                          @Param("documentType") String documentType);
 
-    FileObject insertFile(FileObject fileObject);
+    int insertDocument(ArchiveDocument document);
 
-    ArchiveVersion insertVersion(ArchiveVersion version);
+    int insertFile(FileObject fileObject);
+
+    FileObject findFileByObjectKey(@Param("objectKey") String objectKey);
+
+    int insertVersion(ArchiveVersion version);
+
+    ArchiveVersion findVersionByDocumentAndNumber(@Param("documentId") Long documentId,
+                                                   @Param("versionNo") int versionNo);
 
     void clearCurrent(Long documentId);
 
-    ArchiveVersion findVersionByIdWithScope(@Param("versionId") Long versionId,
-                                             @Param("employeeId") Long employeeId,
-                                             @Param("departmentId") Long departmentId,
-                                             @Param("scopeType") String scopeType);
-
     String findObjectKeyByVersionId(@Param("versionId") Long versionId);
-
-    ArchiveOcrSource findOcrSourceByVersionIdWithScope(@Param("versionId") Long versionId,
-                                                        @Param("employeeId") Long employeeId,
-                                                        @Param("departmentId") Long departmentId,
-                                                        @Param("scopeType") String scopeType);
 }

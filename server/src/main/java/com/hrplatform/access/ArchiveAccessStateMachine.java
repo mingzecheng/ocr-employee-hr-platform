@@ -14,14 +14,27 @@ public final class ArchiveAccessStateMachine {
         return "APPROVED";
     }
 
+    public static String reject(String status) {
+        require(status, "PENDING_APPROVAL");
+        return "REJECTED";
+    }
+
     public static String use(String status) {
         require(status, "APPROVED");
         return "IN_USE";
     }
 
     public static String returnState(String status, boolean abnormal) {
+        if ("ABNORMAL".equals(status)) {
+            return "ABNORMAL";
+        }
         require(status, "IN_USE");
         return abnormal ? "ABNORMAL" : "RETURNED";
+    }
+
+    public static String resolveAbnormal(String status) {
+        require(status, "ABNORMAL");
+        return "RETURNED";
     }
 
     private static void require(String actual, String expected) {

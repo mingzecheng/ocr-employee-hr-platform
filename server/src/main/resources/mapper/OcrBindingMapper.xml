@@ -8,8 +8,8 @@
             <arg column="task_id" javaType="java.lang.String"/>
             <arg column="status" javaType="java.lang.String"/>
             <arg column="engine_version" javaType="java.lang.String"/>
-            <arg column="processing_duration_ms" javaType="long"/>
-            <arg column="review_required" javaType="boolean"/>
+            <arg column="processing_duration_ms" javaType="_long"/>
+            <arg column="review_required" javaType="_boolean"/>
             <arg column="error_code" javaType="java.lang.String"/>
             <arg column="created_at" javaType="java.time.LocalDateTime"/>
             <arg column="document_type" javaType="java.lang.String"/>
@@ -21,6 +21,10 @@
             <arg column="preview_height" javaType="java.lang.Integer"/>
             <arg column="error_message" javaType="java.lang.String"/>
             <arg column="updated_at" javaType="java.time.LocalDateTime"/>
+            <arg column="confirm_status" javaType="java.lang.String"/>
+            <arg column="confirmed_by" javaType="java.lang.Long"/>
+            <arg column="confirmed_at" javaType="java.time.LocalDateTime"/>
+            <arg column="confirm_note" javaType="java.lang.String"/>
         </constructor>
     </resultMap>
 
@@ -41,7 +45,8 @@
         b.id, b.archive_version_id AS version_id, b.task_id, b.status, b.engine_version,
         b.processing_duration_ms, b.review_required, b.error_code, b.created_at,
         b.document_type, b.preview_url, b.preview_content_type, b.preview_size,
-        b.preview_sha256, b.preview_width, b.preview_height, b.error_message, b.updated_at
+        b.preview_sha256, b.preview_width, b.preview_height, b.error_message, b.updated_at,
+        b.confirm_status, b.confirmed_by, b.confirmed_at, b.confirm_note
     </sql>
 
     <select id="findByVersionId" resultMap="BindingMap">
@@ -80,8 +85,7 @@
         </choose>
     </sql>
 
-    <insert id="insert" parameterType="com.hrplatform.ocr.OcrBinding"
-            useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+    <insert id="insert" parameterType="com.hrplatform.ocr.OcrBinding">
         INSERT INTO ocr_binding (
             archive_version_id, task_id, document_type, status, engine_version,
             processing_duration_ms, review_required, error_code, error_message,
@@ -95,8 +99,29 @@
         )
     </insert>
 
-    <insert id="insertRevision" parameterType="com.hrplatform.ocr.OcrFieldRevision"
-            useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+    <update id="update" parameterType="com.hrplatform.ocr.OcrBinding">
+        UPDATE ocr_binding
+        SET task_id = #{taskId}, document_type = #{documentType}, status = #{status},
+            engine_version = #{engineVersion}, processing_duration_ms = #{processingDurationMs},
+            review_required = #{reviewRequired}, error_code = #{errorCode}, error_message = #{errorMessage},
+            preview_url = #{previewUrl}, preview_content_type = #{previewContentType},
+            preview_size = #{previewSize}, preview_sha256 = #{previewSha256},
+            preview_width = #{previewWidth}, preview_height = #{previewHeight},
+            updated_at = #{updatedAt}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateConfirmStatus">
+        UPDATE ocr_binding
+        SET confirm_status = #{confirmStatus},
+            confirmed_by = #{confirmedBy},
+            confirmed_at = #{confirmedAt},
+            confirm_note = #{confirmNote},
+            updated_at = #{confirmedAt}
+        WHERE id = #{id}
+    </update>
+
+    <insert id="insertRevision" parameterType="com.hrplatform.ocr.OcrFieldRevision">
         INSERT INTO ocr_field_revision
             (binding_id, field_code, previous_value, current_value, reason, operator_id, created_at)
         VALUES (#{bindingId}, #{fieldCode}, #{previousValue}, #{currentValue}, #{reason}, #{operatorId}, #{createdAt})

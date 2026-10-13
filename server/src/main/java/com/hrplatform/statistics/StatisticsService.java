@@ -6,6 +6,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 public class StatisticsService {
@@ -28,5 +29,14 @@ public class StatisticsService {
         return new StatisticsOverview(raw.employeeCount(), raw.completeArchiveCount(), raw.archiveCount(), completeness,
                 raw.workflowCount(), raw.pendingWorkflowCount(), raw.activeAccessCount(), raw.abnormalAccessCount(),
                 raw.ocrSucceededCount(), raw.ocrFailedCount(), raw.ocrReviewCount(), avgDuration, LocalDateTime.now());
+    }
+
+    @Transactional(readOnly = true)
+    public StatisticsReport report(DataScope scope, LocalDate from, LocalDate to) {
+        String scopeType = scope.type().name();
+        List<StatisticsTrendPoint> trend = mapper.monthlyTrend(scopeType, scope.employeeId(), scope.departmentId(), from, to);
+        List<DepartmentStatisticsRow> departments = mapper.departments(scopeType, scope.employeeId(), scope.departmentId(), from, to);
+        WorkflowCycleStatistics cycle = mapper.workflowCycle(scopeType, scope.employeeId(), scope.departmentId(), from, to);
+        return new StatisticsReport(trend, departments, cycle);
     }
 }

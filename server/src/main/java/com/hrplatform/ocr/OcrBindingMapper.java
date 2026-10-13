@@ -17,9 +17,17 @@ public interface OcrBindingMapper {
                                  @Param("departmentId") Long departmentId,
                                  @Param("scopeType") String scopeType);
 
-    OcrBinding insert(OcrBinding binding);
+    int insert(OcrBinding binding);
 
-    OcrFieldRevision insertRevision(OcrFieldRevision revision);
+    int update(OcrBinding binding);
+
+    int updateConfirmStatus(@Param("id") Long id,
+                            @Param("confirmStatus") String confirmStatus,
+                            @Param("confirmedBy") Long confirmedBy,
+                            @Param("confirmedAt") java.time.LocalDateTime confirmedAt,
+                            @Param("confirmNote") String confirmNote);
+
+    int insertRevision(OcrFieldRevision revision);
 
     java.util.List<OcrFieldRevision> listRevisions(@Param("bindingId") Long bindingId);
 }

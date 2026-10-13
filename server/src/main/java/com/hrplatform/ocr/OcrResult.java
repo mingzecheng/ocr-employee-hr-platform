@@ -8,4 +8,9 @@ public record OcrResult(Long bindingId, Long versionId, String taskId, String st
                         String previewUrl, List<OcrTextBlock> textBlocks,
                         List<OcrRawField> rawFields, List<BusinessField> fields,
                         List<OcrFieldRevision> revisions) {
+    public OcrResult withPreviewUrl(String value) {
+        return new OcrResult(bindingId, versionId, taskId, status, documentType, engineVersion,
+                processingDurationMs, reviewRequired, errorCode, errorMessage, value,
+                textBlocks, rawFields, fields, revisions);
+    }
 }

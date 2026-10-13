@@ -2,15 +2,17 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.hrplatform.employee.EmployeeMapper">
     <resultMap id="EmployeeMap" type="com.hrplatform.employee.Employee">
-        <id property="id" column="id" />
-        <result property="employeeNo" column="employee_no" />
-        <result property="name" column="name" />
-        <result property="phone" column="phone" />
-        <result property="departmentId" column="department_id" />
-        <result property="positionId" column="position_id" />
-        <result property="status" column="status" />
-        <result property="hireDate" column="hire_date" />
-        <result property="leaveDate" column="leave_date" />
+        <constructor>
+            <idArg column="id" javaType="java.lang.Long"/>
+            <arg column="employee_no" javaType="java.lang.String"/>
+            <arg column="name" javaType="java.lang.String"/>
+            <arg column="phone" javaType="java.lang.String"/>
+            <arg column="department_id" javaType="java.lang.Long"/>
+            <arg column="position_id" javaType="java.lang.Long"/>
+            <arg column="status" javaType="com.hrplatform.employee.EmployeeStatus"/>
+            <arg column="hire_date" javaType="java.time.LocalDate"/>
+            <arg column="leave_date" javaType="java.time.LocalDate"/>
+        </constructor>
     </resultMap>
 
     <select id="findByEmployeeNo" resultMap="EmployeeMap">
@@ -66,10 +68,35 @@
         LIMIT 1
     </select>
 
-    <insert id="insert" parameterType="com.hrplatform.employee.Employee" useGeneratedKeys="true" keyProperty="id">
+    <select id="findByIdWithScopeForUpdate" resultMap="EmployeeMap">
+        SELECT id, employee_no, name, phone, department_id, position_id, status, hire_date, leave_date
+        FROM employee
+        WHERE id = #{id}
+        <choose>
+            <when test="scopeType == 'ALL'">AND 1 = 1</when>
+            <when test="scopeType == 'DEPARTMENT'">AND department_id = #{departmentId}</when>
+            <when test="scopeType == 'EMPLOYEE'">AND id = #{employeeId}</when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+        LIMIT 1
+        FOR UPDATE
+    </select>
+
+    <select id="lockById" resultMap="EmployeeMap">
+        SELECT id, employee_no, name, phone, department_id, position_id, status, hire_date, leave_date
+        FROM employee WHERE id = #{id} LIMIT 1 FOR UPDATE
+    </select>
+
+    <insert id="insert" parameterType="com.hrplatform.employee.Employee">
         INSERT INTO employee (employee_no, name, phone, department_id, position_id, status, hire_date)
         VALUES (#{employeeNo}, #{name}, #{phone}, #{departmentId}, #{positionId}, #{status}, #{hireDate})
     </insert>
+
+    <update id="updateProfile" parameterType="com.hrplatform.employee.EmployeeProfileMutation">
+        UPDATE employee
+        SET name = #{name}, phone = #{phone}
+        WHERE id = #{id}
+    </update>
 
     <update id="updateStatusAndOrganization" parameterType="com.hrplatform.employee.EmployeeMutation">
         UPDATE employee
@@ -90,4 +117,67 @@
             #{beforePositionId}, #{afterPositionId}, #{sourceRequestId}, #{operatorId}, #{createdAt}
         )
     </insert>
+
+    <resultMap id="StatusHistoryViewMap" type="com.hrplatform.employee.EmployeeStatusHistoryView">
+        <constructor>
+            <idArg column="id" javaType="java.lang.Long"/>
+            <arg column="employee_id" javaType="java.lang.Long"/>
+            <arg column="before_status" javaType="java.lang.String"/>
+            <arg column="after_status" javaType="java.lang.String"/>
+            <arg column="before_department_id" javaType="java.lang.Long"/>
+            <arg column="before_department_name" javaType="java.lang.String"/>
+            <arg column="after_department_id" javaType="java.lang.Long"/>
+            <arg column="after_department_name" javaType="java.lang.String"/>
+            <arg column="before_position_id" javaType="java.lang.Long"/>
+            <arg column="before_position_name" javaType="java.lang.String"/>
+            <arg column="after_position_id" javaType="java.lang.Long"/>
+            <arg column="after_position_name" javaType="java.lang.String"/>
+            <arg column="source_request_id" javaType="java.lang.Long"/>
+            <arg column="request_no" javaType="java.lang.String"/>
+            <arg column="operator_id" javaType="java.lang.Long"/>
+            <arg column="operator_name" javaType="java.lang.String"/>
+            <arg column="created_at" javaType="java.time.LocalDateTime"/>
+        </constructor>
+    </resultMap>
+
+    <sql id="historyScopePredicate">
+        <choose>
+            <when test="scopeType == 'ALL'">AND 1 = 1</when>
+            <when test="scopeType == 'DEPARTMENT'">AND e.department_id = #{scopeDepartmentId}</when>
+            <when test="scopeType == 'EMPLOYEE'">AND e.id = #{scopeEmployeeId}</when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+    </sql>
+
+    <select id="listStatusHistory" resultMap="StatusHistoryViewMap">
+        SELECT h.id, h.employee_id, h.before_status, h.after_status,
+               h.before_department_id, before_department.name AS before_department_name,
+               h.after_department_id, after_department.name AS after_department_name,
+               h.before_position_id, before_position.name AS before_position_name,
+               h.after_position_id, after_position.name AS after_position_name,
+               h.source_request_id, request.request_no, h.operator_id,
+               COALESCE(operator_employee.name, operator.username) AS operator_name,
+               h.created_at
+        FROM employee_status_history h
+        JOIN employee e ON e.id = h.employee_id
+        LEFT JOIN org_department before_department ON before_department.id = h.before_department_id
+        LEFT JOIN org_department after_department ON after_department.id = h.after_department_id
+        LEFT JOIN org_position before_position ON before_position.id = h.before_position_id
+        LEFT JOIN org_position after_position ON after_position.id = h.after_position_id
+        LEFT JOIN hr_request request ON request.id = h.source_request_id
+        LEFT JOIN sys_user operator ON operator.id = h.operator_id
+        LEFT JOIN employee operator_employee ON operator_employee.id = operator.employee_id
+        WHERE h.employee_id = #{employeeId}
+        <include refid="historyScopePredicate"/>
+        ORDER BY h.created_at DESC, h.id DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countStatusHistory" resultType="long">
+        SELECT COUNT(*)
+        FROM employee_status_history h
+        JOIN employee e ON e.id = h.employee_id
+        WHERE h.employee_id = #{employeeId}
+        <include refid="historyScopePredicate"/>
+    </select>
 </mapper>

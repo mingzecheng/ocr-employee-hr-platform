@@ -35,4 +35,33 @@ class BusinessFieldMapperTest {
         assertThat(fields.get(0).reviewRequired()).isTrue();
         assertThat(fields.get(0).validationStatus()).isEqualTo("PASSED");
     }
+
+    @Test
+    void historicalEqualsSeparatedOcrLabelsStillMapToBusinessFields() {
+        List<BusinessField> fields = new BusinessFieldMapper(0.85).map("employee_profile", List.of(
+                new OcrTextBlock("employee_name=张三", 0.97, List.of(1, 2, 3, 4), 1),
+                new OcrTextBlock("employee_id=EMP-001", 0.96, List.of(5, 6, 7, 8), 1)
+        ));
+
+        assertThat(fields).extracting(BusinessField::fieldCode)
+                .containsExactly("employee_name", "employee_id");
+        assertThat(fields).extracting(BusinessField::value)
+                .containsExactly("张三", "EMP-001");
+    }
+
+    @Test
+    void archivedHrFormDocumentTypesMapTheirSpecificFields() {
+        List<OcrTextBlock> blocks = List.of(
+                new OcrTextBlock("入职日期：2026-10-01", 0.96, List.of(1, 2, 3, 4), 1),
+                new OcrTextBlock("原部门：研发部", 0.96, List.of(5, 6, 7, 8), 1),
+                new OcrTextBlock("离职日期：2026-10-01", 0.96, List.of(9, 10, 11, 12), 1)
+        );
+
+        assertThat(new BusinessFieldMapper(0.85).map("onboarding", blocks))
+                .extracting(BusinessField::fieldCode).contains("hire_date");
+        assertThat(new BusinessFieldMapper(0.85).map("transfer", blocks))
+                .extracting(BusinessField::fieldCode).contains("from_department");
+        assertThat(new BusinessFieldMapper(0.85).map("offboarding", blocks))
+                .extracting(BusinessField::fieldCode).contains("leave_date");
+    }
 }

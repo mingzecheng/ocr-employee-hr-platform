@@ -16,6 +16,40 @@ jobs:
           cache: maven
       - run: mvn -f server/pom.xml test
 
+  mysql-migrations:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0.39
+        env:
+          MYSQL_ROOT_PASSWORD: root-password
+          MYSQL_DATABASE: hr_platform
+          MYSQL_USER: hr
+          MYSQL_PASSWORD: ci-mysql-password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot-password"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - name: Apply and verify Flyway migrations on MySQL
+        run: mvn -f server/pom.xml -Dtest=FlywayMySqlMigrationTest test
+        env:
+          HR_MYSQL_MIGRATION_TEST: 'true'
+          MYSQL_URL: jdbc:mysql://127.0.0.1:3306/hr_platform?useUnicode=true&characterEncoding=utf8&serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true
+          MYSQL_USERNAME: hr
+          MYSQL_PASSWORD: ci-mysql-password
+          PLATFORM_DEMO_ACCOUNTS_ENABLED: 'false'
+          JWT_SECRET: ci-secret-key-that-is-at-least-32-characters-long
+
   web:
     runs-on: ubuntu-latest
     steps:

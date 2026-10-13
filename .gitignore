@@ -28,6 +28,7 @@ ocr-service/data/
 **/*.log
 output/
 .playwright-cli/
+/backups/
 
 # OS metadata
 .DS_Store

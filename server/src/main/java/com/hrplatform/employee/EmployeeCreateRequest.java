@@ -6,7 +6,6 @@ import jakarta.validation.constraints.NotNull;
 import java.time.LocalDate;
 
 public record EmployeeCreateRequest(
-        @NotBlank String employeeNo,
         @NotBlank String name,
         String phone,
         @NotNull Long departmentId,

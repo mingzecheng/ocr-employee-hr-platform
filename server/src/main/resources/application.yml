@@ -5,13 +5,23 @@ spring:
   application:
     name: hr-platform-server
   datasource:
-    url: ${MYSQL_URL:jdbc:mysql://127.0.0.1:3306/hr_platform?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
-    username: ${MYSQL_USERNAME:hr}
-    password: ${MYSQL_PASSWORD:change-me-application-password}
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    # Read/write split: master handles writes, replica handles reads. In the demo/dev environment
+    # both default to the same MySQL instance; production points MYSQL_REPLICA_URL at a real replica.
+    master:
+      url: ${MYSQL_URL:jdbc:mysql://127.0.0.1:3306/hr_platform?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
+      username: ${MYSQL_USERNAME:hr}
+      password: ${MYSQL_PASSWORD:change-me-application-password}
+      driver-class-name: com.mysql.cj.jdbc.Driver
+    replica:
+      url: ${MYSQL_REPLICA_URL:${MYSQL_URL:jdbc:mysql://127.0.0.1:3306/hr_platform?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}}
+      username: ${MYSQL_REPLICA_USERNAME:${MYSQL_USERNAME:hr}}
+      password: ${MYSQL_REPLICA_PASSWORD:${MYSQL_PASSWORD:change-me-application-password}}
+      driver-class-name: com.mysql.cj.jdbc.Driver
   flyway:
     enabled: ${FLYWAY_ENABLED:true}
     baseline-on-migrate: true
+    placeholders:
+      demoAccountsEnabled: ${PLATFORM_DEMO_ACCOUNTS_ENABLED:true}
   data:
     redis:
       host: ${REDIS_HOST:127.0.0.1}
@@ -34,6 +44,9 @@ management:
         include: health,info
 
 platform:
+  demo-accounts-enabled: ${PLATFORM_DEMO_ACCOUNTS_ENABLED:true}
+  security:
+    live-jwt-validation: ${PLATFORM_LIVE_JWT_VALIDATION:true}
   jwt:
     secret: ${JWT_SECRET:local-development-secret-key-change-before-sharing-please}
     expiration: ${JWT_EXPIRATION:PT8H}

@@ -2,25 +2,39 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.hrplatform.archive.ArchiveMapper">
     <resultMap id="DocumentMap" type="com.hrplatform.archive.ArchiveDocument">
-        <id property="id" column="id" />
-        <result property="employeeId" column="employee_id" />
-        <result property="documentType" column="document_type" />
-        <result property="title" column="title" />
+        <constructor>
+            <idArg column="id" javaType="java.lang.Long"/>
+            <arg column="employee_id" javaType="java.lang.Long"/>
+            <arg column="document_type" javaType="java.lang.String"/>
+            <arg column="title" javaType="java.lang.String"/>
+        </constructor>
     </resultMap>
     <resultMap id="VersionMap" type="com.hrplatform.archive.ArchiveVersion">
-        <id property="id" column="id" />
-        <result property="documentId" column="document_id" />
-        <result property="versionNo" column="version_no" />
-        <result property="fileObjectId" column="file_object_id" />
-        <result property="originalName" column="original_name" />
-        <result property="contentType" column="content_type" />
-        <result property="size" column="byte_size" />
-        <result property="sha256" column="sha256" />
-        <result property="status" column="status" />
-        <result property="isCurrent" column="is_current" />
-        <result property="createdAt" column="created_at" />
-        <result property="createdBy" column="created_by" />
-        <result property="changeReason" column="change_reason" />
+        <constructor>
+            <idArg column="id" javaType="java.lang.Long"/>
+            <arg column="document_id" javaType="java.lang.Long"/>
+            <arg column="version_no" javaType="_int"/>
+            <arg column="file_object_id" javaType="java.lang.Long"/>
+            <arg column="original_name" javaType="java.lang.String"/>
+            <arg column="content_type" javaType="java.lang.String"/>
+            <arg column="byte_size" javaType="_long"/>
+            <arg column="sha256" javaType="java.lang.String"/>
+            <arg column="status" javaType="java.lang.String"/>
+            <arg column="is_current" javaType="_boolean"/>
+            <arg column="created_at" javaType="java.time.LocalDateTime"/>
+            <arg column="created_by" javaType="java.lang.Long"/>
+            <arg column="change_reason" javaType="java.lang.String"/>
+        </constructor>
+    </resultMap>
+    <resultMap id="FileObjectMap" type="com.hrplatform.archive.FileObject">
+        <constructor>
+            <idArg column="id" javaType="java.lang.Long"/>
+            <arg column="object_key" javaType="java.lang.String"/>
+            <arg column="original_name" javaType="java.lang.String"/>
+            <arg column="content_type" javaType="java.lang.String"/>
+            <arg column="size" javaType="_long"/>
+            <arg column="sha256" javaType="java.lang.String"/>
+        </constructor>
     </resultMap>
 
     <sql id="archiveScopePredicate">
@@ -72,21 +86,38 @@
         FROM archive_document WHERE employee_id = #{employeeId} AND document_type = #{documentType} LIMIT 1
     </select>
 
+    <select id="findDocumentForUpdate" resultMap="DocumentMap">
+        SELECT id, employee_id, document_type, title
+        FROM archive_document WHERE employee_id = #{employeeId} AND document_type = #{documentType}
+        LIMIT 1 FOR UPDATE
+    </select>
+
+    <select id="findFileByObjectKey" resultMap="FileObjectMap">
+        SELECT id, object_key, original_name, content_type, byte_size AS size, sha256
+        FROM file_object WHERE object_key = #{objectKey} LIMIT 1
+    </select>
+
+    <select id="findVersionByDocumentAndNumber" resultMap="VersionMap">
+        SELECT id, document_id, version_no, file_object_id, original_name, content_type,
+               byte_size, sha256, status, is_current, created_at, created_by, change_reason
+        FROM archive_version WHERE document_id = #{documentId} AND version_no = #{versionNo} LIMIT 1
+    </select>
+
     <select id="nextVersionNumber" resultType="int">
         SELECT COALESCE(MAX(version_no), 0) + 1 FROM archive_version WHERE document_id = #{documentId}
     </select>
 
-    <insert id="insertDocument" parameterType="com.hrplatform.archive.ArchiveDocument" useGeneratedKeys="true" keyProperty="id">
+    <insert id="insertDocument" parameterType="com.hrplatform.archive.ArchiveDocument">
         INSERT INTO archive_document (employee_id, document_type, title)
         VALUES (#{employeeId}, #{documentType}, #{title})
     </insert>
 
-    <insert id="insertFile" parameterType="com.hrplatform.archive.FileObject" useGeneratedKeys="true" keyProperty="id">
+    <insert id="insertFile" parameterType="com.hrplatform.archive.FileObject">
         INSERT INTO file_object (object_key, original_name, content_type, byte_size, sha256)
         VALUES (#{objectKey}, #{originalName}, #{contentType}, #{size}, #{sha256})
     </insert>
 
-    <insert id="insertVersion" parameterType="com.hrplatform.archive.ArchiveVersion" useGeneratedKeys="true" keyProperty="id">
+    <insert id="insertVersion" parameterType="com.hrplatform.archive.ArchiveVersion">
         INSERT INTO archive_version (document_id, version_no, file_object_id, original_name, content_type, byte_size,
                                     sha256, status, is_current, created_at, created_by, change_reason)
         VALUES (#{documentId}, #{versionNo}, #{fileObjectId}, #{originalName}, #{contentType}, #{size}, #{sha256},
@@ -120,7 +151,7 @@
 
     <select id="findOcrSourceByVersionIdWithScope" resultType="com.hrplatform.archive.ArchiveOcrSource">
         SELECT v.id AS version_id, f.object_key, v.original_name, v.content_type, v.byte_size,
-               v.sha256, d.document_type, e.id AS employee_id, e.department_id
+               v.sha256, d.document_type, e.id AS employee_id, e.department_id, v.created_by
         FROM archive_version v
         JOIN archive_document d ON d.id = v.document_id
         JOIN file_object f ON f.id = v.file_object_id

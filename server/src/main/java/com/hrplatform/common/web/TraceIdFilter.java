@@ -9,16 +9,19 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.regex.Pattern;
 import java.util.UUID;
 
 public class TraceIdFilter extends OncePerRequestFilter {
     public static final String HEADER = "X-Trace-Id";
+    private static final Pattern SAFE_TRACE_ID = Pattern.compile("[A-Za-z0-9._-]{1,128}");
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         String traceId = request.getHeader(HEADER);
-        if (!StringUtils.hasText(traceId)) {
+        if (!StringUtils.hasText(traceId) || "unknown".equalsIgnoreCase(traceId)
+                || !SAFE_TRACE_ID.matcher(traceId).matches()) {
             traceId = UUID.randomUUID().toString();
         }
         try {

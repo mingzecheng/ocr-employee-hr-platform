@@ -14,13 +14,13 @@ public final class RequestStateMachine {
     public static String approve(String status, String node, Set<String> roles) {
         Set<String> safeRoles = roles == null ? Set.of() : roles;
         if ("PENDING_DEPT_APPROVAL".equals(status) && "DEPARTMENT".equals(node)) {
-            if (!safeRoles.contains("DEPT_MANAGER") && !safeRoles.contains("SYSTEM_ADMIN")) {
+            if (!safeRoles.contains("DEPT_MANAGER")) {
                 throw new RequestStateException("当前用户不能进行部门审批");
             }
             return "PENDING_HR_APPROVAL";
         }
         if ("PENDING_HR_APPROVAL".equals(status) && "HR".equals(node)) {
-            if (!safeRoles.contains("HR_ADMIN") && !safeRoles.contains("SYSTEM_ADMIN")) {
+            if (!safeRoles.contains("HR_ADMIN")) {
                 throw new RequestStateException("当前用户不能进行人事审批");
             }
             return "APPROVED";

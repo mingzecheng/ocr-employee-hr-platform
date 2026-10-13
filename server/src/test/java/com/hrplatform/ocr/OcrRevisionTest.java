@@ -24,7 +24,7 @@ class OcrRevisionTest {
     @Test
     void fieldRevisionKeepsPreviousValueAndValidatesCorrectedValue() {
         OcrBinding binding = new OcrBinding(7L, 5L, "task-7", "SUCCEEDED", "paddle-3", 12L,
-                false, null, LocalDateTime.now(), "employee_profile");
+                true, null, LocalDateTime.now(), "employee_profile");
         when(mapper.findByIdWithScope(7L, null, null, DataScope.Type.ALL.name())).thenReturn(binding);
         when(client.getTask("task-7")).thenReturn(new OcrTaskData(
                 "task-7", "SUCCEEDED", "paddle-3", 12L,
@@ -35,7 +35,7 @@ class OcrRevisionTest {
                         "task-7", "SUCCEEDED", "paddle-3", 12L,
                         List.of(new OcrTextBlock("员工编号：EMP-001", 0.91, List.of(1, 2, 3, 4), 1)),
                         List.of(new OcrRawField("employee_id", "EMP-002", 1.0)), null));
-        when(mapper.insertRevision(any(OcrFieldRevision.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(mapper.insertRevision(any(OcrFieldRevision.class))).thenReturn(1);
 
         OcrResult result = new OcrService(client, mapper, new BusinessFieldMapper(0.85))
                 .reviseField(7L, "employee_id", "EMP-002", "录入修正", 9L,
@@ -46,6 +46,7 @@ class OcrRevisionTest {
             assertThat(field.value()).isEqualTo("EMP-002");
             assertThat(field.validationStatus()).isEqualTo("PASSED");
         });
+        assertThat(result.reviewRequired()).isFalse();
         verify(mapper).insertRevision(any(OcrFieldRevision.class));
     }
 }

@@ -7,7 +7,7 @@
             <arg column="applicant_id" javaType="java.lang.Long"/><arg column="department_id" javaType="java.lang.Long"/>
             <arg column="purpose" javaType="java.lang.String"/><arg column="use_type" javaType="java.lang.String"/>
             <arg column="start_at" javaType="java.time.LocalDateTime"/><arg column="due_at" javaType="java.time.LocalDateTime"/>
-            <arg column="status" javaType="java.lang.String"/><arg column="version_no" javaType="int"/>
+            <arg column="status" javaType="java.lang.String"/><arg column="version_no" javaType="_int"/>
             <arg column="created_at" javaType="java.time.LocalDateTime"/>
         </constructor>
     </resultMap>
@@ -23,22 +23,103 @@
             <idArg column="id" javaType="java.lang.Long"/><arg column="application_id" javaType="java.lang.Long"/>
             <arg column="operator_id" javaType="java.lang.Long"/><arg column="used_at" javaType="java.time.LocalDateTime"/>
             <arg column="returned_at" javaType="java.time.LocalDateTime"/><arg column="return_status" javaType="java.lang.String"/>
-            <arg column="remark" javaType="java.lang.String"/>
+            <arg column="remark" javaType="java.lang.String"/><arg column="returned_by_user_id" javaType="java.lang.Long"/>
+            <arg column="handover_to_employee_id" javaType="java.lang.Long"/>
         </constructor>
     </resultMap>
-    <insert id="insertApplication" parameterType="com.hrplatform.access.ArchiveAccessApplication"
-            useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+    <resultMap id="DisplayContextMap" type="com.hrplatform.access.ArchiveAccessDisplayContext">
+        <constructor>
+            <arg column="applicant_name" javaType="java.lang.String"/>
+            <arg column="department_name" javaType="java.lang.String"/>
+        </constructor>
+    </resultMap>
+    <resultMap id="DetailItemMap" type="com.hrplatform.access.ArchiveAccessDetailItem">
+        <constructor>
+            <idArg column="id" javaType="java.lang.Long"/>
+            <arg column="application_id" javaType="java.lang.Long"/>
+            <arg column="archive_version_id" javaType="java.lang.Long"/>
+            <arg column="version_no" javaType="_int"/>
+            <arg column="employee_id" javaType="java.lang.Long"/>
+            <arg column="employee_no" javaType="java.lang.String"/>
+            <arg column="employee_name" javaType="java.lang.String"/>
+            <arg column="department_id" javaType="java.lang.Long"/>
+            <arg column="department_name" javaType="java.lang.String"/>
+            <arg column="document_title" javaType="java.lang.String"/>
+            <arg column="status" javaType="java.lang.String"/>
+        </constructor>
+    </resultMap>
+    <resultMap id="UseDetailMap" type="com.hrplatform.access.ArchiveUseDetail">
+        <constructor>
+            <idArg column="id" javaType="java.lang.Long"/>
+            <arg column="application_id" javaType="java.lang.Long"/>
+            <arg column="operator_id" javaType="java.lang.Long"/>
+            <arg column="operator_name" javaType="java.lang.String"/>
+            <arg column="used_at" javaType="java.time.LocalDateTime"/>
+            <arg column="returned_at" javaType="java.time.LocalDateTime"/>
+            <arg column="return_status" javaType="java.lang.String"/>
+            <arg column="remark" javaType="java.lang.String"/>
+            <arg column="returned_by_user_id" javaType="java.lang.Long"/>
+            <arg column="returned_by_name" javaType="java.lang.String"/>
+            <arg column="handover_to_employee_id" javaType="java.lang.Long"/>
+            <arg column="handover_to_employee_no" javaType="java.lang.String"/>
+            <arg column="handover_to_employee_name" javaType="java.lang.String"/>
+        </constructor>
+    </resultMap>
+    <resultMap id="ResolutionMap" type="com.hrplatform.access.ArchiveAccessResolution">
+        <constructor>
+            <idArg column="id" javaType="java.lang.Long"/>
+            <arg column="application_id" javaType="java.lang.Long"/>
+            <arg column="resolved_by_user_id" javaType="java.lang.Long"/>
+            <arg column="resolved_by_name" javaType="java.lang.String"/>
+            <arg column="resolution_note" javaType="java.lang.String"/>
+            <arg column="resolved_at" javaType="java.time.LocalDateTime"/>
+        </constructor>
+    </resultMap>
+    <resultMap id="DecisionMap" type="com.hrplatform.access.ArchiveAccessDecision">
+        <constructor>
+            <idArg column="id" javaType="java.lang.Long"/>
+            <arg column="application_id" javaType="java.lang.Long"/>
+            <arg column="decided_by_user_id" javaType="java.lang.Long"/>
+            <arg column="decided_by_name" javaType="java.lang.String"/>
+            <arg column="decision" javaType="java.lang.String"/>
+            <arg column="decision_note" javaType="java.lang.String"/>
+            <arg column="decided_at" javaType="java.time.LocalDateTime"/>
+        </constructor>
+    </resultMap>
+    <select id="countActiveReadGrants" resultType="int">
+        SELECT COUNT(*)
+        FROM archive_access_item item
+        JOIN archive_access_application application ON application.id = item.application_id
+        WHERE item.archive_version_id = #{versionId}
+          AND (
+              (application.status = 'IN_USE'
+               AND application.start_at &lt;= #{now}
+               AND application.due_at &gt;= #{now}
+               AND EXISTS (
+                   SELECT 1 FROM archive_use_record active_use
+                   WHERE active_use.application_id = application.id
+                     AND active_use.returned_at IS NULL
+                     AND (application.applicant_id = #{userId} OR active_use.operator_id = #{userId})
+               ))
+              OR (#{canReview} = TRUE AND application.status = 'PENDING_APPROVAL')
+          )
+    </select>
+    <insert id="insertApplication" parameterType="com.hrplatform.access.ArchiveAccessApplication">
         INSERT INTO archive_access_application
             (application_no, applicant_id, department_id, purpose, use_type, start_at, due_at, status, version_no, created_at)
         VALUES (#{applicationNo}, #{applicantId}, #{departmentId}, #{purpose}, #{useType}, #{startAt}, #{dueAt},
                 #{status}, #{versionNo}, #{createdAt})
     </insert>
-    <insert id="insertItem" parameterType="com.hrplatform.access.ArchiveAccessItem"
-            useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+    <insert id="insertItem" parameterType="com.hrplatform.access.ArchiveAccessItem">
         INSERT INTO archive_access_item
             (application_id, archive_version_id, employee_id, department_id, status)
         VALUES (#{applicationId}, #{versionId}, #{employeeId}, #{departmentId}, #{status})
     </insert>
+    <select id="findByApplicationNo" resultMap="ApplicationMap">
+        SELECT a.id, a.application_no, a.applicant_id, a.department_id, a.purpose, a.use_type,
+               a.start_at, a.due_at, a.status, a.version_no, a.created_at
+        FROM archive_access_application a WHERE a.application_no = #{applicationNo} LIMIT 1
+    </select>
     <select id="findApplication" resultMap="ApplicationMap">
         SELECT a.id, a.application_no, a.applicant_id, a.department_id, a.purpose, a.use_type,
                a.start_at, a.due_at, a.status, a.version_no, a.created_at
@@ -47,7 +128,9 @@
         <choose>
             <when test="scopeType == 'ALL'">AND 1 = 1</when>
             <when test="scopeType == 'DEPARTMENT'">AND a.department_id = #{departmentId}</when>
-            <when test="scopeType == 'EMPLOYEE'">AND a.applicant_id = #{employeeId}</when>
+            <when test="scopeType == 'EMPLOYEE'">
+                AND EXISTS (SELECT 1 FROM sys_user u WHERE u.id = a.applicant_id AND u.employee_id = #{employeeId})
+            </when>
             <otherwise>AND 1 = 0</otherwise>
         </choose>
         LIMIT 1
@@ -56,26 +139,143 @@
         SELECT id, application_id, archive_version_id, employee_id, department_id, status
         FROM archive_access_item WHERE application_id = #{applicationId} ORDER BY id
     </select>
+    <select id="findDisplayContext" resultMap="DisplayContextMap">
+        SELECT COALESCE(applicant_employee.name, applicant.username) AS applicant_name,
+               department.name AS department_name
+        FROM archive_access_application a
+        LEFT JOIN sys_user applicant ON applicant.id = a.applicant_id
+        LEFT JOIN employee applicant_employee ON applicant_employee.id = applicant.employee_id
+        LEFT JOIN org_department department ON department.id = a.department_id
+        WHERE a.id = #{applicationId}
+        LIMIT 1
+    </select>
+    <select id="listDetailItems" resultMap="DetailItemMap">
+        SELECT i.id, i.application_id, i.archive_version_id, v.version_no, i.employee_id,
+               e.employee_no, e.name AS employee_name, i.department_id, department.name AS department_name,
+               d.title AS document_title, i.status
+        FROM archive_access_item i
+        JOIN archive_version v ON v.id = i.archive_version_id
+        JOIN archive_document d ON d.id = v.document_id
+        JOIN employee e ON e.id = i.employee_id
+        LEFT JOIN org_department department ON department.id = i.department_id
+        WHERE i.application_id = #{applicationId}
+        ORDER BY i.id
+    </select>
+    <insert id="insertResolution" parameterType="com.hrplatform.access.ArchiveAccessResolution">
+        INSERT INTO archive_access_resolution
+            (application_id, resolved_by_user_id, resolution_note, resolved_at)
+        VALUES (#{applicationId}, #{resolvedByUserId}, #{resolutionNote}, #{resolvedAt})
+    </insert>
+    <select id="listResolutions" resultMap="ResolutionMap">
+        SELECT r.id, r.application_id, r.resolved_by_user_id,
+               COALESCE(resolver_employee.name, resolver.username) AS resolved_by_name,
+               r.resolution_note, r.resolved_at
+        FROM archive_access_resolution r
+        LEFT JOIN sys_user resolver ON resolver.id = r.resolved_by_user_id
+        LEFT JOIN employee resolver_employee ON resolver_employee.id = resolver.employee_id
+        WHERE r.application_id = #{applicationId}
+        ORDER BY r.resolved_at, r.id
+    </select>
+    <insert id="insertDecision" parameterType="com.hrplatform.access.ArchiveAccessDecision">
+        INSERT INTO archive_access_decision
+            (application_id, decided_by_user_id, decision, decision_note, decided_at)
+        VALUES (#{applicationId}, #{decidedByUserId}, #{decision}, #{decisionNote}, #{decidedAt})
+    </insert>
+    <select id="listDecisions" resultMap="DecisionMap">
+        SELECT d.id, d.application_id, d.decided_by_user_id,
+               COALESCE(decider_employee.name, decider.username) AS decided_by_name,
+               d.decision, d.decision_note, d.decided_at
+        FROM archive_access_decision d
+        LEFT JOIN sys_user decider ON decider.id = d.decided_by_user_id
+        LEFT JOIN employee decider_employee ON decider_employee.id = decider.employee_id
+        WHERE d.application_id = #{applicationId}
+        ORDER BY d.decided_at, d.id
+    </select>
     <update id="updateState" parameterType="com.hrplatform.access.ArchiveAccessApplication">
         UPDATE archive_access_application
         SET status = #{status}, version_no = #{versionNo}
         WHERE id = #{id} AND version_no = #{versionNo} - 1
     </update>
-    <insert id="insertUse" parameterType="com.hrplatform.access.ArchiveUseRecord"
-            useGeneratedKeys="true" keyProperty="id" keyColumn="id">
-        INSERT INTO archive_use_record (application_id, operator_id, used_at, returned_at, return_status, remark)
-        VALUES (#{applicationId}, #{operatorId}, #{usedAt}, #{returnedAt}, #{returnStatus}, #{remark})
+    <insert id="insertUse" parameterType="com.hrplatform.access.ArchiveUseRecord">
+        INSERT INTO archive_use_record
+            (application_id, operator_id, used_at, returned_at, return_status, remark,
+             returned_by_user_id, handover_to_employee_id)
+        VALUES (#{applicationId}, #{operatorId}, #{usedAt}, #{returnedAt}, #{returnStatus}, #{remark},
+                #{returnedByUserId}, #{handoverToEmployeeId})
     </insert>
     <select id="findActiveUse" resultMap="UseMap">
-        SELECT id, application_id, operator_id, used_at, returned_at, return_status, remark
+        SELECT id, application_id, operator_id, used_at, returned_at, return_status, remark,
+               returned_by_user_id, handover_to_employee_id
         FROM archive_use_record WHERE application_id = #{applicationId} AND returned_at IS NULL
         ORDER BY id DESC LIMIT 1
     </select>
     <update id="closeUse" parameterType="com.hrplatform.access.ArchiveUseRecord">
         UPDATE archive_use_record
-        SET returned_at = #{returnedAt}, return_status = #{returnStatus}, remark = #{remark}
+        SET returned_at = #{returnedAt}, return_status = #{returnStatus}, remark = #{remark},
+            returned_by_user_id = #{returnedByUserId}, handover_to_employee_id = #{handoverToEmployeeId}
         WHERE id = #{id} AND returned_at IS NULL
     </update>
+    <select id="listUses" resultMap="UseMap">
+        SELECT id, application_id, operator_id, used_at, returned_at, return_status, remark,
+               returned_by_user_id, handover_to_employee_id
+        FROM archive_use_record WHERE application_id = #{applicationId} ORDER BY used_at, id
+    </select>
+    <select id="listUseDetails" resultMap="UseDetailMap">
+        SELECT u.id, u.application_id, u.operator_id,
+               COALESCE(operator_employee.name, operator_user.username) AS operator_name,
+               u.used_at, u.returned_at, u.return_status, u.remark,
+               u.returned_by_user_id,
+               COALESCE(returner_employee.name, returner_user.username) AS returned_by_name,
+               u.handover_to_employee_id, handover_employee.employee_no AS handover_to_employee_no,
+               handover_employee.name AS handover_to_employee_name
+        FROM archive_use_record u
+        LEFT JOIN sys_user operator_user ON operator_user.id = u.operator_id
+        LEFT JOIN employee operator_employee ON operator_employee.id = operator_user.employee_id
+        LEFT JOIN sys_user returner_user ON returner_user.id = u.returned_by_user_id
+        LEFT JOIN employee returner_employee ON returner_employee.id = returner_user.employee_id
+        LEFT JOIN employee handover_employee ON handover_employee.id = u.handover_to_employee_id
+        WHERE u.application_id = #{applicationId}
+        ORDER BY u.used_at, u.id
+    </select>
+    <select id="listOverdueInUseIds" resultType="long">
+        SELECT a.id
+        FROM archive_access_application a
+        WHERE a.status = 'IN_USE' AND a.due_at &lt; #{now}
+          AND EXISTS (
+              SELECT 1 FROM archive_use_record u
+              WHERE u.application_id = a.id AND u.returned_at IS NULL
+          )
+        ORDER BY a.due_at, a.id
+        LIMIT #{limit}
+    </select>
+    <update id="markOverdueInUse">
+        UPDATE archive_access_application
+        SET status = 'ABNORMAL', version_no = version_no + 1
+        WHERE id = #{id} AND status = 'IN_USE' AND due_at &lt; #{now}
+          AND EXISTS (
+              SELECT 1 FROM archive_use_record u
+              WHERE u.application_id = archive_access_application.id AND u.returned_at IS NULL
+          )
+    </update>
+    <select id="listExpiredApprovedIds" resultType="long">
+        SELECT a.id
+        FROM archive_access_application a
+        WHERE a.status = 'APPROVED' AND a.due_at &lt; #{now}
+        ORDER BY a.due_at, a.id
+        LIMIT #{limit}
+    </select>
+    <update id="markApprovedExpired">
+        UPDATE archive_access_application
+        SET status = 'EXPIRED', version_no = version_no + 1
+        WHERE id = #{id} AND status = 'APPROVED' AND due_at &lt; #{now}
+    </update>
+    <select id="isActiveEmployeeInDepartment" resultType="boolean">
+        SELECT CASE WHEN EXISTS (
+            SELECT 1 FROM employee e
+            WHERE e.id = #{employeeId} AND e.status = 'ACTIVE'
+              AND (#{departmentId} IS NULL OR e.department_id = #{departmentId})
+        ) THEN TRUE ELSE FALSE END
+    </select>
     <select id="listApplications" resultMap="ApplicationMap">
         SELECT a.id, a.application_no, a.applicant_id, a.department_id, a.purpose, a.use_type,
                a.start_at, a.due_at, a.status, a.version_no, a.created_at
@@ -87,7 +287,9 @@
         <choose>
             <when test="scopeType == 'ALL'">AND 1 = 1</when>
             <when test="scopeType == 'DEPARTMENT'">AND a.department_id = #{departmentId}</when>
-            <when test="scopeType == 'EMPLOYEE'">AND a.applicant_id = #{applicantId}</when>
+            <when test="scopeType == 'EMPLOYEE'">
+                AND EXISTS (SELECT 1 FROM sys_user u WHERE u.id = a.applicant_id AND u.employee_id = #{scopeEmployeeId})
+            </when>
             <otherwise>AND 1 = 0</otherwise>
         </choose>
         ORDER BY a.created_at DESC, a.id DESC
@@ -102,7 +304,9 @@
         <choose>
             <when test="scopeType == 'ALL'">AND 1 = 1</when>
             <when test="scopeType == 'DEPARTMENT'">AND a.department_id = #{departmentId}</when>
-            <when test="scopeType == 'EMPLOYEE'">AND a.applicant_id = #{applicantId}</when>
+            <when test="scopeType == 'EMPLOYEE'">
+                AND EXISTS (SELECT 1 FROM sys_user u WHERE u.id = a.applicant_id AND u.employee_id = #{scopeEmployeeId})
+            </when>
             <otherwise>AND 1 = 0</otherwise>
         </choose>
     </select>

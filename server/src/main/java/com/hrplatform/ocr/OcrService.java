@@ -33,7 +33,7 @@ public class OcrService {
     @Transactional
     public OcrBinding trigger(OcrTrigger trigger) {
         OcrBinding existing = mapper.findByVersionId(trigger.versionId());
-        if (existing != null) {
+        if (existing != null && !"FAILED".equals(existing.status())) {
             return existing;
         }
         LocalDateTime now = LocalDateTime.now();
@@ -43,16 +43,16 @@ public class OcrService {
                     "employee_profile".equals(trigger.documentType()) ? "employee_profile" : null));
             List<BusinessField> fields = mapTask(trigger.documentType(), task);
             OcrBinding binding = bindingFromTask(trigger, task, fields, now);
-            OcrBinding saved = mapper.insert(binding);
-            record(trigger.operatorId(), "OCR_TRIGGER", "OCR_BINDING", saved == null ? null : saved.id(), "SUCCESS");
-            return saved == null ? binding : saved;
+            OcrBinding saved = persist(withId(binding, existing), existing == null);
+            record(trigger.operatorId(), "OCR_TRIGGER", "OCR_BINDING", saved.id(), "SUCCESS");
+            return saved;
         } catch (OcrClientException exception) {
             OcrBinding failed = new OcrBinding(null, trigger.versionId(), null, "FAILED", "unknown", 0L,
                     true, "OCR_UNAVAILABLE", now, trigger.documentType(), null, null, null, null,
-                    null, null, exception.getMessage(), now);
-            OcrBinding saved = mapper.insert(failed);
-            record(trigger.operatorId(), "OCR_TRIGGER", "OCR_BINDING", saved == null ? null : saved.id(), "FAILED");
-            return saved == null ? failed : saved;
+                    null, null, exception.getMessage(), now, "PENDING", null, null, null);
+            OcrBinding saved = persist(withId(failed, existing), existing == null);
+            record(trigger.operatorId(), "OCR_TRIGGER", "OCR_BINDING", saved.id(), "FAILED");
+            return saved;
         }
     }
 
@@ -123,7 +123,11 @@ public class OcrService {
         try {
             return result(binding, client.getTask(binding.taskId()));
         } catch (OcrClientException exception) {
-            return result(binding, null);
+            OcrResult stored = result(binding, null);
+            return new OcrResult(stored.bindingId(), stored.versionId(), stored.taskId(), "UNAVAILABLE",
+                    stored.documentType(), stored.engineVersion(), stored.processingDurationMs(), true,
+                    "OCR_RESULT_UNAVAILABLE", "OCR 识别结果暂不可用，请稍后刷新",
+                    stored.previewUrl(), stored.textBlocks(), stored.rawFields(), stored.fields(), stored.revisions());
         }
     }
 
@@ -139,7 +143,7 @@ public class OcrService {
                 binding.documentType(),
                 task == null ? binding.engineVersion() : task.engineVersion(),
                 task == null ? binding.processingDurationMs() : task.processingDurationMs(),
-                binding.reviewRequired() || fields.stream().anyMatch(BusinessField::reviewRequired),
+                task == null ? binding.reviewRequired() : fields.stream().anyMatch(BusinessField::reviewRequired),
                 binding.errorCode(), task == null ? binding.errorMessage() : task.errorMessage(),
                 binding.previewUrl(), blocks, rawFields, fields,
                 binding.id() == null ? List.of() : mapper.listRevisions(binding.id()));
@@ -154,7 +158,7 @@ public class OcrService {
                 preview == null ? null : preview.url(), preview == null ? null : preview.contentType(),
                 preview == null ? null : preview.size(), preview == null ? null : preview.sha256(),
                 preview == null ? null : preview.width(), preview == null ? null : preview.height(),
-                task.errorMessage(), now);
+                task.errorMessage(), now, "PENDING", null, null, null);
     }
 
     private List<BusinessField> mapTask(String documentType, OcrTaskData task) {
@@ -188,5 +192,29 @@ public class OcrService {
         if (operationLogService != null) {
             operationLogService.record(operatorId, action, objectType, objectId, result);
         }
+    }
+
+    private OcrBinding persist(OcrBinding binding, boolean insert) {
+        if ((insert ? mapper.insert(binding) : mapper.update(binding)) != 1) {
+            throw new IllegalStateException(insert ? "OCR 结果绑定写入失败" : "OCR 重试结果写入失败");
+        }
+        OcrBinding saved = mapper.findByVersionId(binding.versionId());
+        if (saved == null) {
+            throw new IllegalStateException("OCR 结果绑定已写入但无法读取");
+        }
+        return saved;
+    }
+
+    private OcrBinding withId(OcrBinding binding, OcrBinding existing) {
+        if (existing == null) {
+            return binding;
+        }
+        return new OcrBinding(existing.id(), binding.versionId(), binding.taskId(), binding.status(),
+                binding.engineVersion(), binding.processingDurationMs(), binding.reviewRequired(),
+                binding.errorCode(), existing.createdAt(), binding.documentType(), binding.previewUrl(),
+                binding.previewContentType(), binding.previewSize(), binding.previewSha256(),
+                binding.previewWidth(), binding.previewHeight(), binding.errorMessage(), binding.updatedAt(),
+                // 重试 OCR 时保留已有人工确认状态，避免覆盖 confirm_status
+                existing.confirmStatus(), existing.confirmedBy(), existing.confirmedAt(), existing.confirmNote());
     }
 }

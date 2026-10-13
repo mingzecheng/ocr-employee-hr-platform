@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hrplatform.contract.ContractMapper">
+    <resultMap id="ContractMap" type="com.hrplatform.contract.ContractRecord">
+        <constructor>
+            <idArg column="id" javaType="java.lang.Long"/>
+            <arg column="contract_no" javaType="java.lang.String"/>
+            <arg column="employee_id" javaType="java.lang.Long"/>
+            <arg column="contract_type" javaType="java.lang.String"/>
+            <arg column="signed_on" javaType="java.time.LocalDate"/>
+            <arg column="starts_on" javaType="java.time.LocalDate"/>
+            <arg column="ends_on" javaType="java.time.LocalDate"/>
+            <arg column="status" javaType="java.lang.String"/>
+            <arg column="renewal_status" javaType="java.lang.String"/>
+            <arg column="source_version_id" javaType="java.lang.Long"/>
+            <arg column="renewed_from_contract_id" javaType="java.lang.Long"/>
+            <arg column="notes" javaType="java.lang.String"/>
+            <arg column="version_no" javaType="_int"/>
+            <arg column="created_by" javaType="java.lang.Long"/>
+            <arg column="created_at" javaType="java.time.LocalDateTime"/>
+            <arg column="updated_at" javaType="java.time.LocalDateTime"/>
+        </constructor>
+    </resultMap>
+
+    <sql id="columns">
+        c.id, c.contract_no, c.employee_id, c.contract_type, c.signed_on, c.starts_on, c.ends_on,
+        CASE WHEN c.ends_on &lt; CURRENT_DATE THEN 'EXPIRED' ELSE 'ACTIVE' END AS status,
+        c.renewal_status,
+        c.source_version_id, c.renewed_from_contract_id, c.notes, c.version_no, c.created_by,
+        c.created_at, c.updated_at
+    </sql>
+
+    <select id="findByContractNo" resultMap="ContractMap">
+        SELECT <include refid="columns"/>
+        FROM employee_contract c
+        WHERE c.contract_no = #{contractNo}
+        LIMIT 1
+    </select>
+
+    <select id="findByIdWithScope" resultMap="ContractMap">
+        SELECT <include refid="columns"/>
+        FROM employee_contract c JOIN employee e ON e.id = c.employee_id
+        WHERE c.id = #{id}
+        <include refid="scopePredicate"/>
+        LIMIT 1
+    </select>
+
+    <sql id="scopePredicate">
+        <choose>
+            <when test="scopeType == 'ALL'">AND 1 = 1</when>
+            <when test="scopeType == 'DEPARTMENT'">AND e.department_id = #{departmentId}</when>
+            <when test="scopeType == 'EMPLOYEE'">AND e.id = #{scopeEmployeeId}</when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+    </sql>
+
+    <select id="list" resultMap="ContractMap">
+        SELECT <include refid="columns"/>
+        FROM employee_contract c JOIN employee e ON e.id = c.employee_id
+        WHERE 1 = 1
+        <if test="employeeId != null">AND c.employee_id = #{employeeId}</if>
+        <if test="status == 'ACTIVE'">AND c.ends_on &gt;= CURRENT_DATE</if>
+        <if test="status == 'EXPIRED'">AND c.ends_on &lt; CURRENT_DATE</if>
+        <if test="renewalStatus == 'DUE'">
+            AND c.renewal_status = 'NOT_DUE' AND c.ends_on &gt;= #{dueFrom}
+            AND c.ends_on &lt;= #{dueThrough}
+        </if>
+        <if test="renewalStatus != null and renewalStatus != '' and renewalStatus != 'DUE'">
+            AND c.renewal_status = #{renewalStatus}
+            <if test="renewalStatus == 'NOT_DUE'">AND c.ends_on &gt; #{dueThrough}</if>
+        </if>
+        <include refid="scopePredicate"/>
+        ORDER BY c.ends_on ASC, c.id DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="count" resultType="long">
+        SELECT COUNT(*)
+        FROM employee_contract c JOIN employee e ON e.id = c.employee_id
+        WHERE 1 = 1
+        <if test="employeeId != null">AND c.employee_id = #{employeeId}</if>
+        <if test="status == 'ACTIVE'">AND c.ends_on &gt;= CURRENT_DATE</if>
+        <if test="status == 'EXPIRED'">AND c.ends_on &lt; CURRENT_DATE</if>
+        <if test="renewalStatus == 'DUE'">
+            AND c.renewal_status = 'NOT_DUE' AND c.ends_on &gt;= #{dueFrom}
+            AND c.ends_on &lt;= #{dueThrough}
+        </if>
+        <if test="renewalStatus != null and renewalStatus != '' and renewalStatus != 'DUE'">
+            AND c.renewal_status = #{renewalStatus}
+            <if test="renewalStatus == 'NOT_DUE'">AND c.ends_on &gt; #{dueThrough}</if>
+        </if>
+        <include refid="scopePredicate"/>
+    </select>
+
+    <insert id="insert" parameterType="com.hrplatform.contract.ContractRecord">
+        INSERT INTO employee_contract (
+            contract_no, employee_id, contract_type, signed_on, starts_on, ends_on, renewal_status,
+            source_version_id, renewed_from_contract_id, notes, version_no, created_by, updated_by
+        ) VALUES (
+            #{contractNo}, #{employeeId}, #{contractType}, #{signedOn}, #{startsOn}, #{endsOn},
+            'NOT_DUE', #{sourceVersionId}, #{renewedFromContractId}, #{notes}, 0, #{createdBy}, #{createdBy}
+        )
+    </insert>
+
+    <update id="markRenewed">
+        UPDATE employee_contract
+        SET renewal_status = 'RENEWED', version_no = version_no + 1, updated_by = #{operatorId}
+        WHERE id = #{id} AND version_no = #{versionNo} AND renewal_status = 'NOT_DUE'
+    </update>
+
+    <update id="markNotRenewing">
+        UPDATE employee_contract
+        SET renewal_status = 'NOT_RENEWING', version_no = version_no + 1, updated_by = #{operatorId}
+        WHERE id = #{id} AND version_no = #{versionNo} AND renewal_status = 'NOT_DUE'
+    </update>
+</mapper>

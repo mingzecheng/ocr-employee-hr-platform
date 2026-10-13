@@ -2,6 +2,7 @@ package com.hrplatform.employee;
 
 import com.hrplatform.audit.OperationLogService;
 import com.hrplatform.common.security.DataScope;
+import com.hrplatform.organization.OrganizationMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -9,6 +10,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -18,33 +20,51 @@ class EmployeeServiceTest {
     private EmployeeMapper mapper;
     @Mock
     private OperationLogService operationLogService;
+    @Mock
+    private OrganizationMapper organizationMapper;
 
     @Test
-    void duplicateEmployeeNumberIsRejectedBeforeInsert() {
-        when(mapper.findByEmployeeNo("EMP-001")).thenReturn(new Employee(
-                1L, "EMP-001", "已有员工", null, 10L, 20L, EmployeeStatus.ACTIVE, null, null
-        ));
+    void employeeNumberIsGeneratedWhenCreatingRecord() {
+        when(mapper.insert(org.mockito.ArgumentMatchers.any(Employee.class))).thenReturn(1);
+        when(mapper.findByEmployeeNo(org.mockito.ArgumentMatchers.anyString()))
+                .thenAnswer(invocation -> new Employee(1L, invocation.getArgument(0), "新员工", null,
+                        10L, 20L, EmployeeStatus.ACTIVE, null, null));
         EmployeeService service = new EmployeeService(mapper, operationLogService);
 
-        assertThatThrownBy(() -> service.create(new EmployeeCreateRequest(
-                        "EMP-001", "新员工", null, 10L, 20L, EmployeeStatus.ACTIVE, null
-                ), 99L))
-                .isInstanceOf(EmployeeExistsException.class);
+        Employee created = service.create(new EmployeeCreateRequest(
+                "新员工", null, 10L, 20L, EmployeeStatus.ACTIVE, null), 99L);
+
+        assertThat(created.employeeNo()).matches("EMP-\\d{4}-[A-F0-9]{20}");
     }
 
     @Test
     void employeeCreateWritesAndReturnsPersistedRecord() {
-        Employee persisted = new Employee(2L, "EMP-002", "新员工", "13800000000", 10L, 20L,
-                EmployeeStatus.ACTIVE, null, null);
-        when(mapper.findByEmployeeNo("EMP-002")).thenReturn(null);
-        when(mapper.insert(org.mockito.ArgumentMatchers.any(Employee.class))).thenReturn(persisted);
+        when(mapper.insert(org.mockito.ArgumentMatchers.any(Employee.class))).thenReturn(1);
+        when(mapper.findByEmployeeNo(org.mockito.ArgumentMatchers.anyString()))
+                .thenAnswer(invocation -> new Employee(2L, invocation.getArgument(0), "新员工", "13800000000",
+                        10L, 20L, EmployeeStatus.ACTIVE, null, null));
+        when(organizationMapper.isEnabledPosition(20L, 10L)).thenReturn(true);
 
-        Employee result = new EmployeeService(mapper, operationLogService).create(new EmployeeCreateRequest(
-                "EMP-002", "新员工", "13800000000", 10L, 20L, EmployeeStatus.ACTIVE, null
+        Employee result = new EmployeeService(mapper, organizationMapper, operationLogService).create(new EmployeeCreateRequest(
+                "新员工", "13800000000", 10L, 20L, EmployeeStatus.ACTIVE, null
         ), 99L);
 
         assertThat(result.id()).isEqualTo(2L);
-        assertThat(result.employeeNo()).isEqualTo("EMP-002");
+        assertThat(result.employeeNo()).matches("EMP-\\d{4}-[A-F0-9]{20}");
+    }
+
+    @Test
+    void employeeCreateRejectsPositionFromAnotherDepartment() {
+        when(organizationMapper.isEnabledPosition(30L, 10L)).thenReturn(false);
+
+        assertThatThrownBy(() -> new EmployeeService(mapper, organizationMapper, operationLogService).create(
+                new EmployeeCreateRequest("新员工", null, 10L, 30L,
+                        EmployeeStatus.ACTIVE, null), 99L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("不属于所选部门");
+
+        org.mockito.Mockito.verify(mapper, org.mockito.Mockito.never())
+                .insert(org.mockito.ArgumentMatchers.any(Employee.class));
     }
 
     @Test
@@ -69,5 +89,47 @@ class EmployeeServiceTest {
         assertThat(page.total()).isEqualTo(1L);
         assertThat(page.items()).hasSize(1);
         verify(mapper).list(null, null, null, 42L, "EMPLOYEE", 0, 20);
+    }
+
+    @Test
+    void updateProfileTrimsNameClearsBlankPhoneAndRecordsAudit() {
+        Employee original = new Employee(7L, "EMP-007", "原姓名", "13800138001", 3L, 4L,
+                EmployeeStatus.ACTIVE, null, null);
+        Employee updated = new Employee(7L, "EMP-007", "新姓名", null, 3L, 4L,
+                EmployeeStatus.ACTIVE, null, null);
+        when(mapper.findByIdWithScope(7L, null, null, DataScope.Type.ALL.name()))
+                .thenReturn(original, updated);
+        when(mapper.updateProfile(any(EmployeeProfileMutation.class))).thenReturn(1);
+
+        Employee result = new EmployeeService(mapper, organizationMapper, operationLogService)
+                .updateProfile(7L, new EmployeeProfileUpdateRequest("  新姓名  ", "   "), 99L);
+
+        assertThat(result).isEqualTo(updated);
+        org.mockito.ArgumentCaptor<EmployeeProfileMutation> mutation =
+                org.mockito.ArgumentCaptor.forClass(EmployeeProfileMutation.class);
+        verify(mapper).updateProfile(mutation.capture());
+        assertThat(mutation.getValue().name()).isEqualTo("新姓名");
+        assertThat(mutation.getValue().phone()).isNull();
+        verify(operationLogService).record(99L, "UPDATE", "EMPLOYEE", 7L, "SUCCESS");
+    }
+
+    @Test
+    void updateProfileRejectsInvalidPhoneWithoutWriting() {
+        assertThatThrownBy(() -> new EmployeeService(mapper, organizationMapper, operationLogService)
+                .updateProfile(7L, new EmployeeProfileUpdateRequest("新姓名", "123"), 99L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("联系电话");
+
+        verify(mapper, org.mockito.Mockito.never()).updateProfile(any(EmployeeProfileMutation.class));
+    }
+
+    @Test
+    void updateProfileRejectsBlankNameWithoutWriting() {
+        assertThatThrownBy(() -> new EmployeeService(mapper, organizationMapper, operationLogService)
+                .updateProfile(7L, new EmployeeProfileUpdateRequest("  ", null), 99L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("姓名");
+
+        verify(mapper, org.mockito.Mockito.never()).updateProfile(any(EmployeeProfileMutation.class));
     }
 }

@@ -24,6 +24,11 @@ public class AuthController {
         return ApiResponse.success(authService.login(request), "unknown");
     }
 
+    @PostMapping("/register")
+    public ApiResponse<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
+        return ApiResponse.success(authService.register(request), "unknown");
+    }
+
     @GetMapping("/me")
     public ApiResponse<JwtPrincipal> me(Authentication authentication) {
         return ApiResponse.success((JwtPrincipal) authentication.getPrincipal(), "unknown");

@@ -20,10 +20,15 @@ public class OperationLogService {
     }
 
     public void record(Long operatorId, String action, String objectType, Long objectId, String result) {
+        record(operatorId, action, objectType, objectId, result, null, null);
+    }
+
+    public void record(Long operatorId, String action, String objectType, Long objectId, String result,
+                       String beforeSummary, String afterSummary) {
         log.info("operation operatorId={} action={} objectType={} objectId={} result={}",
                 operatorId, action, objectType, objectId, result);
         String traceId = MDC.get(TraceIdFilter.HEADER);
         mapper.insert(new OperationLogRecord(null, operatorId, action, objectType, objectId,
-                result, traceId == null ? "unknown" : traceId, LocalDateTime.now()));
+                beforeSummary, afterSummary, result, traceId == null ? "unknown" : traceId, LocalDateTime.now()));
     }
 }

@@ -3,12 +3,40 @@
 <mapper namespace="com.hrplatform.statistics.StatisticsMapper">
     <resultMap id="RawMap" type="com.hrplatform.statistics.StatisticsRaw">
         <constructor>
-            <arg column="employee_count" javaType="long"/><arg column="complete_archive_count" javaType="long"/>
-            <arg column="archive_count" javaType="long"/><arg column="workflow_count" javaType="long"/>
-            <arg column="pending_workflow_count" javaType="long"/><arg column="active_access_count" javaType="long"/>
-            <arg column="abnormal_access_count" javaType="long"/><arg column="ocr_succeeded_count" javaType="long"/>
-            <arg column="ocr_failed_count" javaType="long"/><arg column="ocr_review_count" javaType="long"/>
-            <arg column="ocr_duration_total_ms" javaType="long"/>
+            <arg column="employee_count" javaType="_long"/><arg column="complete_archive_count" javaType="_long"/>
+            <arg column="archive_count" javaType="_long"/><arg column="workflow_count" javaType="_long"/>
+            <arg column="pending_workflow_count" javaType="_long"/><arg column="active_access_count" javaType="_long"/>
+            <arg column="abnormal_access_count" javaType="_long"/><arg column="ocr_succeeded_count" javaType="_long"/>
+            <arg column="ocr_failed_count" javaType="_long"/><arg column="ocr_review_count" javaType="_long"/>
+            <arg column="ocr_duration_total_ms" javaType="_long"/>
+        </constructor>
+    </resultMap>
+    <resultMap id="TrendMap" type="com.hrplatform.statistics.StatisticsTrendPoint">
+        <constructor>
+            <arg column="period" javaType="java.lang.String"/>
+            <arg column="employee_count" javaType="_long"/>
+            <arg column="workflow_count" javaType="_long"/>
+            <arg column="ocr_succeeded_count" javaType="_long"/>
+            <arg column="ocr_failed_count" javaType="_long"/>
+        </constructor>
+    </resultMap>
+    <resultMap id="DepartmentMap" type="com.hrplatform.statistics.DepartmentStatisticsRow">
+        <constructor>
+            <idArg column="department_id" javaType="java.lang.Long"/>
+            <arg column="department_name" javaType="java.lang.String"/>
+            <arg column="employee_count" javaType="_long"/>
+            <arg column="archive_count" javaType="_long"/>
+            <arg column="workflow_count" javaType="_long"/>
+            <arg column="pending_workflow_count" javaType="_long"/>
+            <arg column="abnormal_access_count" javaType="_long"/>
+        </constructor>
+    </resultMap>
+    <resultMap id="WorkflowCycleMap" type="com.hrplatform.statistics.WorkflowCycleStatistics">
+        <constructor>
+            <arg column="completed_count" javaType="_long"/>
+            <arg column="average_duration_hours" javaType="_double"/>
+            <arg column="shortest_duration_hours" javaType="_double"/>
+            <arg column="longest_duration_hours" javaType="_double"/>
         </constructor>
     </resultMap>
     <select id="aggregate" resultMap="RawMap">
@@ -55,14 +83,18 @@
         (SELECT COUNT(*) FROM archive_access_application a WHERE a.status = 'IN_USE'
             <choose><when test="scopeType == 'ALL'">AND 1 = 1</when>
                 <when test="scopeType == 'DEPARTMENT'">AND a.department_id = #{departmentId}</when>
-                <when test="scopeType == 'EMPLOYEE'">AND a.applicant_id = #{employeeId}</when>
+                <when test="scopeType == 'EMPLOYEE'">
+                    AND EXISTS (SELECT 1 FROM sys_user u WHERE u.id = a.applicant_id AND u.employee_id = #{employeeId})
+                </when>
                 <otherwise>AND 1 = 0</otherwise></choose>
             <if test="from != null">AND a.created_at &gt;= #{from}</if>
             <if test="to != null">AND a.created_at &lt; DATE_ADD(#{to}, INTERVAL 1 DAY)</if>) AS active_access_count,
         (SELECT COUNT(*) FROM archive_access_application a WHERE a.status = 'ABNORMAL'
             <choose><when test="scopeType == 'ALL'">AND 1 = 1</when>
                 <when test="scopeType == 'DEPARTMENT'">AND a.department_id = #{departmentId}</when>
-                <when test="scopeType == 'EMPLOYEE'">AND a.applicant_id = #{employeeId}</when>
+                <when test="scopeType == 'EMPLOYEE'">
+                    AND EXISTS (SELECT 1 FROM sys_user u WHERE u.id = a.applicant_id AND u.employee_id = #{employeeId})
+                </when>
                 <otherwise>AND 1 = 0</otherwise></choose>
             <if test="from != null">AND a.created_at &gt;= #{from}</if>
             <if test="to != null">AND a.created_at &lt; DATE_ADD(#{to}, INTERVAL 1 DAY)</if>) AS abnormal_access_count,
@@ -102,5 +134,109 @@
                 <otherwise>AND 1 = 0</otherwise></choose>
             <if test="from != null">AND b.created_at &gt;= #{from}</if>
             <if test="to != null">AND b.created_at &lt; DATE_ADD(#{to}, INTERVAL 1 DAY)</if>) AS ocr_duration_total_ms
+    </select>
+
+    <select id="monthlyTrend" resultMap="TrendMap">
+        WITH periods AS (
+            SELECT DATE_FORMAT(e.created_at, '%Y-%m') AS period
+            FROM employee e
+            WHERE 1 = 1
+            <choose><when test="scopeType == 'ALL'">AND 1 = 1</when>
+                <when test="scopeType == 'DEPARTMENT'">AND e.department_id = #{departmentId}</when>
+                <when test="scopeType == 'EMPLOYEE'">AND e.id = #{employeeId}</when>
+                <otherwise>AND 1 = 0</otherwise></choose>
+            <if test="from != null">AND e.created_at &gt;= #{from}</if>
+            <if test="to != null">AND e.created_at &lt; DATE_ADD(#{to}, INTERVAL 1 DAY)</if>
+            UNION
+            SELECT DATE_FORMAT(r.created_at, '%Y-%m')
+            FROM hr_request r JOIN employee e ON e.id = r.employee_id
+            WHERE 1 = 1
+            <choose><when test="scopeType == 'ALL'">AND 1 = 1</when>
+                <when test="scopeType == 'DEPARTMENT'">AND e.department_id = #{departmentId}</when>
+                <when test="scopeType == 'EMPLOYEE'">AND e.id = #{employeeId}</when>
+                <otherwise>AND 1 = 0</otherwise></choose>
+            <if test="from != null">AND r.created_at &gt;= #{from}</if>
+            <if test="to != null">AND r.created_at &lt; DATE_ADD(#{to}, INTERVAL 1 DAY)</if>
+            UNION
+            SELECT DATE_FORMAT(b.created_at, '%Y-%m')
+            FROM ocr_binding b JOIN archive_version v ON v.id = b.archive_version_id
+            JOIN archive_document d ON d.id = v.document_id JOIN employee e ON e.id = d.employee_id
+            WHERE 1 = 1
+            <choose><when test="scopeType == 'ALL'">AND 1 = 1</when>
+                <when test="scopeType == 'DEPARTMENT'">AND e.department_id = #{departmentId}</when>
+                <when test="scopeType == 'EMPLOYEE'">AND e.id = #{employeeId}</when>
+                <otherwise>AND 1 = 0</otherwise></choose>
+            <if test="from != null">AND b.created_at &gt;= #{from}</if>
+            <if test="to != null">AND b.created_at &lt; DATE_ADD(#{to}, INTERVAL 1 DAY)</if>
+        ), employees AS (
+            SELECT DATE_FORMAT(e.created_at, '%Y-%m') AS period, COUNT(*) AS count_value
+            FROM employee e WHERE 1 = 1
+            <choose><when test="scopeType == 'ALL'">AND 1 = 1</when><when test="scopeType == 'DEPARTMENT'">AND e.department_id = #{departmentId}</when><when test="scopeType == 'EMPLOYEE'">AND e.id = #{employeeId}</when><otherwise>AND 1 = 0</otherwise></choose>
+            <if test="from != null">AND e.created_at &gt;= #{from}</if><if test="to != null">AND e.created_at &lt; DATE_ADD(#{to}, INTERVAL 1 DAY)</if>
+            GROUP BY DATE_FORMAT(e.created_at, '%Y-%m')
+        ), workflows AS (
+            SELECT DATE_FORMAT(r.created_at, '%Y-%m') AS period, COUNT(*) AS count_value
+            FROM hr_request r JOIN employee e ON e.id = r.employee_id WHERE 1 = 1
+            <choose><when test="scopeType == 'ALL'">AND 1 = 1</when><when test="scopeType == 'DEPARTMENT'">AND e.department_id = #{departmentId}</when><when test="scopeType == 'EMPLOYEE'">AND e.id = #{employeeId}</when><otherwise>AND 1 = 0</otherwise></choose>
+            <if test="from != null">AND r.created_at &gt;= #{from}</if><if test="to != null">AND r.created_at &lt; DATE_ADD(#{to}, INTERVAL 1 DAY)</if>
+            GROUP BY DATE_FORMAT(r.created_at, '%Y-%m')
+        ), ocr AS (
+            SELECT DATE_FORMAT(b.created_at, '%Y-%m') AS period,
+                   SUM(CASE WHEN b.status = 'SUCCEEDED' THEN 1 ELSE 0 END) AS succeeded_count,
+                   SUM(CASE WHEN b.status = 'FAILED' THEN 1 ELSE 0 END) AS failed_count
+            FROM ocr_binding b JOIN archive_version v ON v.id = b.archive_version_id
+            JOIN archive_document d ON d.id = v.document_id JOIN employee e ON e.id = d.employee_id WHERE 1 = 1
+            <choose><when test="scopeType == 'ALL'">AND 1 = 1</when><when test="scopeType == 'DEPARTMENT'">AND e.department_id = #{departmentId}</when><when test="scopeType == 'EMPLOYEE'">AND e.id = #{employeeId}</when><otherwise>AND 1 = 0</otherwise></choose>
+            <if test="from != null">AND b.created_at &gt;= #{from}</if><if test="to != null">AND b.created_at &lt; DATE_ADD(#{to}, INTERVAL 1 DAY)</if>
+            GROUP BY DATE_FORMAT(b.created_at, '%Y-%m')
+        )
+        SELECT p.period,
+               COALESCE(e.count_value, 0) AS employee_count,
+               COALESCE(w.count_value, 0) AS workflow_count,
+               COALESCE(o.succeeded_count, 0) AS ocr_succeeded_count,
+               COALESCE(o.failed_count, 0) AS ocr_failed_count
+        FROM periods p
+        LEFT JOIN employees e ON e.period = p.period
+        LEFT JOIN workflows w ON w.period = p.period
+        LEFT JOIN ocr o ON o.period = p.period
+        ORDER BY p.period
+    </select>
+
+    <select id="departments" resultMap="DepartmentMap">
+        SELECT d.id AS department_id, d.name AS department_name,
+               COUNT(DISTINCT e.id) AS employee_count,
+               COUNT(DISTINCT ea.id) AS archive_count,
+               COUNT(DISTINCT r.id) AS workflow_count,
+               COUNT(DISTINCT CASE WHEN r.status LIKE 'PENDING%' THEN r.id END) AS pending_workflow_count,
+               COUNT(DISTINCT CASE WHEN a.status = 'ABNORMAL' THEN a.id END) AS abnormal_access_count
+        FROM org_department d
+        LEFT JOIN employee e ON e.department_id = d.id
+        LEFT JOIN employee_archive ea ON ea.employee_id = e.id
+        LEFT JOIN hr_request r ON r.employee_id = e.id
+        LEFT JOIN archive_access_application a ON a.department_id = d.id
+        WHERE d.enabled = TRUE
+        <choose><when test="scopeType == 'ALL'">AND 1 = 1</when>
+            <when test="scopeType == 'DEPARTMENT'">AND d.id = #{departmentId}</when>
+            <when test="scopeType == 'EMPLOYEE'">AND e.id = #{employeeId}</when>
+            <otherwise>AND 1 = 0</otherwise></choose>
+        <if test="from != null">AND (e.created_at IS NULL OR e.created_at &gt;= #{from})</if>
+        <if test="to != null">AND (e.created_at IS NULL OR e.created_at &lt; DATE_ADD(#{to}, INTERVAL 1 DAY))</if>
+        GROUP BY d.id, d.name
+        ORDER BY employee_count DESC, d.sort_order, d.id
+    </select>
+
+    <select id="workflowCycle" resultMap="WorkflowCycleMap">
+        SELECT COUNT(*) AS completed_count,
+               COALESCE(AVG(TIMESTAMPDIFF(SECOND, r.created_at, r.completed_at)) / 3600, 0) AS average_duration_hours,
+               COALESCE(MIN(TIMESTAMPDIFF(SECOND, r.created_at, r.completed_at)) / 3600, 0) AS shortest_duration_hours,
+               COALESCE(MAX(TIMESTAMPDIFF(SECOND, r.created_at, r.completed_at)) / 3600, 0) AS longest_duration_hours
+        FROM hr_request r JOIN employee e ON e.id = r.employee_id
+        WHERE r.completed_at IS NOT NULL
+        <choose><when test="scopeType == 'ALL'">AND 1 = 1</when>
+            <when test="scopeType == 'DEPARTMENT'">AND e.department_id = #{departmentId}</when>
+            <when test="scopeType == 'EMPLOYEE'">AND e.id = #{employeeId}</when>
+            <otherwise>AND 1 = 0</otherwise></choose>
+        <if test="from != null">AND r.created_at &gt;= #{from}</if>
+        <if test="to != null">AND r.created_at &lt; DATE_ADD(#{to}, INTERVAL 1 DAY)</if>
     </select>
 </mapper>

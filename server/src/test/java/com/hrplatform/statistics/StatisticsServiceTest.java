@@ -8,6 +8,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class StatisticsServiceTest {
@@ -33,6 +34,24 @@ class StatisticsServiceTest {
 
         new StatisticsService(mapper).overview(new DataScope(DataScope.Type.DEPARTMENT, 20L, null, 9L), null, null);
 
-        org.mockito.Mockito.verify(mapper).aggregate("DEPARTMENT", null, 9L, null, null);
+        verify(mapper).aggregate("DEPARTMENT", null, 9L, null, null);
+    }
+
+    @Test
+    void reportKeepsAggregateSectionsAndPassesDataScope() {
+        when(mapper.monthlyTrend("DEPARTMENT", null, 9L, null, null)).thenReturn(
+                java.util.List.of(new StatisticsTrendPoint("2026-10", 4, 3, 2, 1)));
+        when(mapper.departments("DEPARTMENT", null, 9L, null, null)).thenReturn(
+                java.util.List.of(new DepartmentStatisticsRow(9L, "研发部", 4, 4, 3, 1, 0)));
+        when(mapper.workflowCycle("DEPARTMENT", null, 9L, null, null)).thenReturn(
+                new WorkflowCycleStatistics(2, 12.5, 2, 24));
+
+        StatisticsReport report = new StatisticsService(mapper).report(
+                new DataScope(DataScope.Type.DEPARTMENT, 20L, null, 9L), null, null);
+
+        assertThat(report.monthlyTrend()).hasSize(1);
+        assertThat(report.departments().get(0).departmentName()).isEqualTo("研发部");
+        assertThat(report.workflowCycle().averageDurationHours()).isEqualTo(12.5);
+        verify(mapper).workflowCycle("DEPARTMENT", null, 9L, null, null);
     }
 }

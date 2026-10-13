@@ -7,6 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -14,7 +15,12 @@ import java.time.format.DateTimeParseException;
 
 @Component
 public class BusinessFieldMapper {
-    private static final Pattern LABEL = Pattern.compile("^\\s*([^:：]+?)\\s*[:：]\\s*(.+?)\\s*$");
+    /**
+     * OCR 服务早期版本将标签和值用半角等号连接，后续版本改为中文冒号。
+     * 两种格式都属于同一份原始识别证据，映射层需要兼容历史任务。
+     */
+    private static final Pattern LABEL = Pattern.compile(
+            "(?:^|\\s)([^:：=\\s]+)\\s*[:：=]\\s*(.*?)(?=\\s+[^:：=\\s]+\\s*[:：=]|$)");
     private final double lowConfidenceThreshold;
 
     public BusinessFieldMapper() {
@@ -29,20 +35,19 @@ public class BusinessFieldMapper {
         Map<String, Rule> rules = rules(documentType);
         List<BusinessField> result = new ArrayList<>();
         for (OcrTextBlock block : blocks == null ? List.<OcrTextBlock>of() : blocks) {
-            var matcher = LABEL.matcher(block.text());
-            if (!matcher.matches()) {
-                continue;
+            Matcher matcher = LABEL.matcher(block.text() == null ? "" : block.text());
+            while (matcher.find()) {
+                Rule rule = rules.get(matcher.group(1).trim());
+                if (rule == null || result.stream().anyMatch(item -> item.fieldCode().equals(rule.code))) {
+                    continue;
+                }
+                String value = matcher.group(2).trim();
+                boolean valid = rule.validator.test(value);
+                result.add(new BusinessField(rule.code, value, block.confidence(), block.bbox(), block.pageNo(),
+                        valid ? "PASSED" : "FAILED",
+                        block.confidence() < lowConfidenceThreshold || !valid,
+                        valid ? null : rule.message));
             }
-            Rule rule = rules.get(matcher.group(1).trim());
-            if (rule == null || result.stream().anyMatch(item -> item.fieldCode().equals(rule.code))) {
-                continue;
-            }
-            String value = matcher.group(2).trim();
-            boolean valid = rule.validator.test(value);
-            result.add(new BusinessField(rule.code, value, block.confidence(), block.bbox(), block.pageNo(),
-                    valid ? "PASSED" : "FAILED",
-                    block.confidence() < lowConfidenceThreshold || !valid,
-                    valid ? null : rule.message));
         }
         return result;
     }
@@ -78,18 +83,18 @@ public class BusinessFieldMapper {
     private Map<String, Rule> rules(String documentType) {
         Map<String, Rule> rules = new LinkedHashMap<>();
         common(rules);
-        if ("onboarding_form".equals(documentType)) {
+        if ("onboarding_form".equalsIgnoreCase(documentType) || "onboarding".equalsIgnoreCase(documentType)) {
             add(rules, "入职日期", "hire_date", this::isDate, "日期格式应为 yyyy-MM-dd");
             add(rules, "部门", "department", this::isNonBlank, "部门不能为空");
             add(rules, "岗位", "position", this::isNonBlank, "岗位不能为空");
-        } else if ("transfer_form".equals(documentType)) {
+        } else if ("transfer_form".equalsIgnoreCase(documentType) || "transfer".equalsIgnoreCase(documentType)) {
             add(rules, "原部门", "from_department", this::isNonBlank, "原部门不能为空");
             add(rules, "新部门", "to_department", this::isNonBlank, "新部门不能为空");
             add(rules, "原岗位", "from_position", this::isNonBlank, "原岗位不能为空");
             add(rules, "新岗位", "to_position", this::isNonBlank, "新岗位不能为空");
             add(rules, "生效日期", "effective_date", this::isDate, "日期格式应为 yyyy-MM-dd");
             add(rules, "调动原因", "transfer_reason", this::isNonBlank, "调动原因不能为空");
-        } else if ("offboarding_form".equals(documentType)) {
+        } else if ("offboarding_form".equalsIgnoreCase(documentType) || "offboarding".equalsIgnoreCase(documentType)) {
             add(rules, "离职日期", "leave_date", this::isDate, "日期格式应为 yyyy-MM-dd");
             add(rules, "交接人", "handover_person", this::isNonBlank, "交接人不能为空");
             add(rules, "交接状态", "handover_status", this::isNonBlank, "交接状态不能为空");
@@ -101,8 +106,10 @@ public class BusinessFieldMapper {
     private void common(Map<String, Rule> rules) {
         add(rules, "员工姓名", "employee_name", this::isName, "员工姓名格式错误");
         add(rules, "姓名", "employee_name", this::isName, "员工姓名格式错误");
+        add(rules, "employee_name", "employee_name", this::isName, "员工姓名格式错误");
         add(rules, "员工编号", "employee_id", this::isEmployeeId, "员工编号格式错误");
         add(rules, "工号", "employee_id", this::isEmployeeId, "员工编号格式错误");
+        add(rules, "employee_id", "employee_id", this::isEmployeeId, "员工编号格式错误");
         add(rules, "联系电话", "phone", this::isPhone, "联系电话格式错误");
         add(rules, "手机号", "phone", this::isPhone, "联系电话格式错误");
     }

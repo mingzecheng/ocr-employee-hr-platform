@@ -8,16 +8,28 @@
             <arg column="request_type" javaType="java.lang.String"/>
             <arg column="employee_id" javaType="java.lang.Long"/>
             <arg column="target_department_id" javaType="java.lang.Long"/>
+            <arg column="approval_department_id" javaType="java.lang.Long"/>
             <arg column="target_position_id" javaType="java.lang.Long"/>
             <arg column="applicant_id" javaType="java.lang.Long"/>
             <arg column="source_version_id" javaType="java.lang.Long"/>
             <arg column="payload_json" javaType="java.lang.String"/>
             <arg column="status" javaType="java.lang.String"/>
             <arg column="current_node" javaType="java.lang.String"/>
-            <arg column="version_no" javaType="int"/>
+            <arg column="version_no" javaType="_int"/>
             <arg column="created_at" javaType="java.time.LocalDateTime"/>
             <arg column="submitted_at" javaType="java.time.LocalDateTime"/>
             <arg column="completed_at" javaType="java.time.LocalDateTime"/>
+            <arg column="leave_type" javaType="java.lang.String"/>
+            <arg column="leave_start_date" javaType="java.time.LocalDate"/>
+            <arg column="leave_end_date" javaType="java.time.LocalDate"/>
+            <arg column="leave_reason" javaType="java.lang.String"/>
+            <arg column="effective_date" javaType="java.time.LocalDate"/>
+            <arg column="contract_type" javaType="java.lang.String"/>
+            <arg column="leave_date" javaType="java.time.LocalDate"/>
+            <arg column="handover_person" javaType="java.lang.String"/>
+            <arg column="handover_status" javaType="java.lang.String"/>
+            <arg column="reason" javaType="java.lang.String"/>
+            <arg column="employee_change_applied_at" javaType="java.time.LocalDateTime"/>
         </constructor>
     </resultMap>
 
@@ -30,39 +42,88 @@
             <arg column="decision" javaType="java.lang.String"/>
             <arg column="comment" javaType="java.lang.String"/>
             <arg column="decided_at" javaType="java.time.LocalDateTime"/>
+            <arg column="approver_name" javaType="java.lang.String"/>
+        </constructor>
+    </resultMap>
+
+    <resultMap id="TransferDetailMap" type="com.hrplatform.workflow.TransferDetail">
+        <constructor>
+            <arg column="request_id" javaType="java.lang.String"/>
+            <arg column="from_department_id" javaType="java.lang.Long"/>
+            <arg column="from_position_id" javaType="java.lang.Long"/>
+            <arg column="effective_date" javaType="java.time.LocalDate"/>
+            <arg column="reason" javaType="java.lang.String"/>
+        </constructor>
+    </resultMap>
+
+    <resultMap id="RequestDisplayContextMap" type="com.hrplatform.workflow.RequestDisplayContext">
+        <constructor>
+            <arg column="employee_no" javaType="java.lang.String"/>
+            <arg column="employee_name" javaType="java.lang.String"/>
+            <arg column="employee_department_id" javaType="java.lang.Long"/>
+            <arg column="employee_department_name" javaType="java.lang.String"/>
+            <arg column="employee_position_id" javaType="java.lang.Long"/>
+            <arg column="employee_position_name" javaType="java.lang.String"/>
+            <arg column="applicant_name" javaType="java.lang.String"/>
+            <arg column="approval_department_name" javaType="java.lang.String"/>
+            <arg column="target_department_name" javaType="java.lang.String"/>
+            <arg column="target_position_name" javaType="java.lang.String"/>
         </constructor>
     </resultMap>
 
     <sql id="columns">
-        r.id, r.request_no, r.request_type, r.employee_id, r.target_department_id,
+        r.id, r.request_no, r.request_type, r.employee_id, r.target_department_id, r.approval_department_id,
         r.target_position_id, r.applicant_id, r.source_version_id, r.payload_json,
-        r.status, r.current_node, r.version_no, r.created_at, r.submitted_at, r.completed_at
+        r.status, r.current_node, r.version_no, r.created_at, r.submitted_at, r.completed_at,
+        l.leave_type, l.start_date AS leave_start_date, l.end_date AS leave_end_date,
+        l.reason AS leave_reason, COALESCE(o.hire_date, t.effective_date) AS effective_date,
+        o.contract_type, f.leave_date, f.handover_person, f.handover_status,
+        COALESCE(t.reason, f.reason) AS reason, r.employee_change_applied_at
     </sql>
 
     <select id="findByIdWithScope" resultMap="RequestMap">
         SELECT <include refid="columns"/>
         FROM hr_request r JOIN employee e ON e.id = r.employee_id
+        LEFT JOIN leave_request_detail l ON l.request_id = r.id
+        LEFT JOIN onboarding_detail o ON o.request_id = r.id
+        LEFT JOIN transfer_detail t ON t.request_id = r.id
+        LEFT JOIN offboarding_detail f ON f.request_id = r.id
         WHERE r.id = #{id}
         <choose>
             <when test="scopeType == 'ALL'">AND 1 = 1</when>
-            <when test="scopeType == 'DEPARTMENT'">AND e.department_id = #{departmentId}</when>
+            <when test="scopeType == 'DEPARTMENT'">AND r.approval_department_id = #{departmentId}</when>
             <when test="scopeType == 'EMPLOYEE'">AND e.id = #{employeeId}</when>
             <otherwise>AND 1 = 0</otherwise>
         </choose>
         LIMIT 1
     </select>
 
+    <select id="findByRequestNo" resultMap="RequestMap">
+        SELECT <include refid="columns"/>
+        FROM hr_request r
+        LEFT JOIN leave_request_detail l ON l.request_id = r.id
+        LEFT JOIN onboarding_detail o ON o.request_id = r.id
+        LEFT JOIN transfer_detail t ON t.request_id = r.id
+        LEFT JOIN offboarding_detail f ON f.request_id = r.id
+        WHERE r.request_no = #{requestNo}
+        LIMIT 1
+    </select>
+
     <select id="list" resultMap="RequestMap">
         SELECT <include refid="columns"/>
         FROM hr_request r JOIN employee e ON e.id = r.employee_id
+        LEFT JOIN leave_request_detail l ON l.request_id = r.id
+        LEFT JOIN onboarding_detail o ON o.request_id = r.id
+        LEFT JOIN transfer_detail t ON t.request_id = r.id
+        LEFT JOIN offboarding_detail f ON f.request_id = r.id
         WHERE 1 = 1
         <if test="requestType != null and requestType != ''">AND r.request_type = #{requestType}</if>
         <if test="status != null and status != ''">AND r.status = #{status}</if>
         <if test="employeeId != null">AND r.employee_id = #{employeeId}</if>
-        <if test="departmentId != null">AND e.department_id = #{departmentId}</if>
+        <if test="departmentId != null">AND r.approval_department_id = #{departmentId}</if>
         <choose>
             <when test="scopeType == 'ALL'">AND 1 = 1</when>
-            <when test="scopeType == 'DEPARTMENT'">AND e.department_id = #{departmentId}</when>
+            <when test="scopeType == 'DEPARTMENT'">AND r.approval_department_id = #{departmentId}</when>
             <when test="scopeType == 'EMPLOYEE'">AND e.id = #{employeeId}</when>
             <otherwise>AND 1 = 0</otherwise>
         </choose>
@@ -76,27 +137,73 @@
         <if test="requestType != null and requestType != ''">AND r.request_type = #{requestType}</if>
         <if test="status != null and status != ''">AND r.status = #{status}</if>
         <if test="employeeId != null">AND r.employee_id = #{employeeId}</if>
-        <if test="departmentId != null">AND e.department_id = #{departmentId}</if>
+        <if test="departmentId != null">AND r.approval_department_id = #{departmentId}</if>
         <choose>
             <when test="scopeType == 'ALL'">AND 1 = 1</when>
-            <when test="scopeType == 'DEPARTMENT'">AND e.department_id = #{departmentId}</when>
+            <when test="scopeType == 'DEPARTMENT'">AND r.approval_department_id = #{departmentId}</when>
             <when test="scopeType == 'EMPLOYEE'">AND e.id = #{employeeId}</when>
             <otherwise>AND 1 = 0</otherwise>
         </choose>
     </select>
 
-    <insert id="insert" parameterType="com.hrplatform.workflow.HrRequest"
-            useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+    <insert id="insert" parameterType="com.hrplatform.workflow.HrRequest">
         INSERT INTO hr_request (
-            request_no, request_type, employee_id, target_department_id, target_position_id,
+            request_no, request_type, employee_id, target_department_id, approval_department_id, target_position_id,
             applicant_id, source_version_id, payload_json, status, current_node, version_no,
             submitted_at, completed_at, created_at
         ) VALUES (
-            #{requestNo}, #{requestType}, #{employeeId}, #{targetDepartmentId}, #{targetPositionId},
+            #{requestNo}, #{requestType}, #{employeeId}, #{targetDepartmentId}, #{approvalDepartmentId}, #{targetPositionId},
             #{applicantId}, #{sourceVersionId}, #{payloadJson}, #{status}, #{currentNode}, #{versionNo},
             #{submittedAt}, #{completedAt}, #{createdAt}
         )
     </insert>
+
+    <insert id="insertLeaveDetail" parameterType="com.hrplatform.workflow.LeaveRequestDetail">
+        INSERT INTO leave_request_detail (request_id, leave_type, start_date, end_date, reason)
+        SELECT id, #{leaveType}, #{startDate}, #{endDate}, #{reason}
+        FROM hr_request WHERE request_no = #{requestNo}
+    </insert>
+
+    <insert id="insertOnboardingDetail" parameterType="com.hrplatform.workflow.OnboardingDetail">
+        INSERT INTO onboarding_detail (request_id, hire_date, contract_type)
+        SELECT id, #{hireDate}, #{contractType} FROM hr_request WHERE request_no = #{requestNo}
+    </insert>
+
+    <insert id="insertTransferDetail" parameterType="com.hrplatform.workflow.TransferDetail">
+        INSERT INTO transfer_detail (request_id, from_department_id, from_position_id, effective_date, reason)
+        SELECT id, #{fromDepartmentId}, #{fromPositionId}, #{effectiveDate}, #{reason}
+        FROM hr_request WHERE request_no = #{requestNo}
+    </insert>
+
+    <select id="findTransferDetail" resultMap="TransferDetailMap">
+        SELECT request_id, from_department_id, from_position_id, effective_date, reason
+        FROM transfer_detail WHERE request_id = #{requestId}
+    </select>
+
+    <select id="countOpenEmployeeChanges" resultType="long">
+        SELECT COUNT(*) FROM hr_request
+        WHERE employee_id = #{employeeId}
+          AND request_type IN ('ONBOARDING', 'TRANSFER', 'OFFBOARDING')
+          AND status IN ('DRAFT', 'PENDING_DEPT_APPROVAL', 'PENDING_HR_APPROVAL', 'APPROVED')
+          AND employee_change_applied_at IS NULL
+        <if test="excludeRequestId != null">AND id &lt;&gt; #{excludeRequestId}</if>
+    </select>
+
+    <insert id="insertOffboardingDetail" parameterType="com.hrplatform.workflow.OffboardingDetail">
+        INSERT INTO offboarding_detail (request_id, leave_date, handover_person, handover_status, reason)
+        SELECT id, #{leaveDate}, #{handoverPerson}, #{handoverStatus}, #{reason}
+        FROM hr_request WHERE request_no = #{requestNo}
+    </insert>
+
+    <select id="isHandoverComplete" resultType="boolean">
+        SELECT EXISTS(SELECT 1 FROM offboarding_detail
+                      WHERE request_id = #{requestId} AND handover_status = 'COMPLETED')
+    </select>
+
+    <update id="completeHandover">
+        UPDATE offboarding_detail SET handover_status = 'COMPLETED'
+        WHERE request_id = #{requestId} AND handover_status = 'PENDING'
+    </update>
 
     <update id="updateState" parameterType="com.hrplatform.workflow.HrRequest">
         UPDATE hr_request
@@ -105,9 +212,131 @@
         WHERE id = #{id} AND version_no = #{versionNo} - 1
     </update>
 
-    <insert id="insertApproval" parameterType="com.hrplatform.workflow.ApprovalRecord"
-            useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+    <insert id="insertApproval" parameterType="com.hrplatform.workflow.ApprovalRecord">
         INSERT INTO approval_record (request_id, node_code, approver_id, decision, comment, decided_at)
         VALUES (#{requestId}, #{nodeCode}, #{approverId}, #{decision}, #{comment}, #{decidedAt})
     </insert>
+
+    <select id="listApprovals" resultMap="ApprovalMap">
+        SELECT a.id, a.request_id, a.node_code, a.approver_id, a.decision, a.comment, a.decided_at,
+               COALESCE(approver_employee.name, u.username) AS approver_name
+        FROM approval_record a
+        LEFT JOIN sys_user u ON u.id = a.approver_id
+        LEFT JOIN employee approver_employee ON approver_employee.id = u.employee_id
+        WHERE a.request_id = #{requestId}
+        ORDER BY a.decided_at ASC, a.id ASC
+    </select>
+
+    <select id="findDisplayContext" resultMap="RequestDisplayContextMap">
+        SELECT e.employee_no, e.name AS employee_name,
+               e.department_id AS employee_department_id,
+               employee_department.name AS employee_department_name,
+               e.position_id AS employee_position_id,
+               employee_position.name AS employee_position_name,
+               COALESCE(applicant_employee.name, applicant.username) AS applicant_name,
+               approval_department.name AS approval_department_name,
+               target_department.name AS target_department_name,
+               target_position.name AS target_position_name
+        FROM hr_request r
+        JOIN employee e ON e.id = r.employee_id
+        LEFT JOIN org_department employee_department ON employee_department.id = e.department_id
+        LEFT JOIN org_position employee_position ON employee_position.id = e.position_id
+        LEFT JOIN sys_user applicant ON applicant.id = r.applicant_id
+        LEFT JOIN employee applicant_employee ON applicant_employee.id = applicant.employee_id
+        LEFT JOIN org_department approval_department ON approval_department.id = r.approval_department_id
+        LEFT JOIN org_department target_department ON target_department.id = r.target_department_id
+        LEFT JOIN org_position target_position ON target_position.id = r.target_position_id
+        WHERE r.id = #{requestId}
+        LIMIT 1
+    </select>
+
+    <select id="listDueEmployeeChangeIds" resultType="long">
+        SELECT r.id
+        FROM hr_request r
+        LEFT JOIN onboarding_detail o ON o.request_id = r.id
+        LEFT JOIN transfer_detail t ON t.request_id = r.id
+        LEFT JOIN offboarding_detail f ON f.request_id = r.id
+        WHERE r.status = 'APPROVED' AND r.employee_change_applied_at IS NULL
+          AND ((r.request_type = 'ONBOARDING' AND o.hire_date &lt;= #{effectiveOnOrBefore})
+            OR (r.request_type = 'TRANSFER' AND t.effective_date &lt;= #{effectiveOnOrBefore})
+            OR (r.request_type = 'OFFBOARDING' AND f.leave_date &lt;= #{effectiveOnOrBefore}))
+        ORDER BY COALESCE(o.hire_date, t.effective_date, f.leave_date), r.id
+        LIMIT #{limit}
+    </select>
+
+    <select id="hasEarlierUnappliedEmployeeChange" resultType="boolean">
+        SELECT EXISTS (
+            SELECT 1
+            FROM hr_request r
+            LEFT JOIN onboarding_detail o ON o.request_id = r.id
+            LEFT JOIN transfer_detail t ON t.request_id = r.id
+            LEFT JOIN offboarding_detail f ON f.request_id = r.id
+            WHERE r.employee_id = #{employeeId}
+              AND r.id &lt;&gt; #{requestId}
+              AND r.status = 'APPROVED'
+              AND r.employee_change_applied_at IS NULL
+              AND r.request_type IN ('ONBOARDING', 'TRANSFER', 'OFFBOARDING')
+              AND (
+                    COALESCE(o.hire_date, t.effective_date, f.leave_date) &lt; #{effectiveDate}
+                    OR (COALESCE(o.hire_date, t.effective_date, f.leave_date) = #{effectiveDate}
+                        AND r.id &lt; #{requestId})
+              )
+        )
+    </select>
+
+    <select id="lockDueEmployeeChange" resultType="long">
+        SELECT r.id
+        FROM hr_request r
+        LEFT JOIN onboarding_detail o ON o.request_id = r.id
+        LEFT JOIN transfer_detail t ON t.request_id = r.id
+        LEFT JOIN offboarding_detail f ON f.request_id = r.id
+        WHERE r.id = #{id} AND r.status = 'APPROVED' AND r.employee_change_applied_at IS NULL
+          AND ((r.request_type = 'ONBOARDING' AND o.hire_date &lt;= #{effectiveOnOrBefore})
+            OR (r.request_type = 'TRANSFER' AND t.effective_date &lt;= #{effectiveOnOrBefore})
+            OR (r.request_type = 'OFFBOARDING' AND f.leave_date &lt;= #{effectiveOnOrBefore}))
+        FOR UPDATE
+    </select>
+
+    <update id="markEmployeeChangeApplied">
+        UPDATE hr_request SET employee_change_applied_at = #{appliedAt}
+        WHERE id = #{id} AND status = 'APPROVED' AND employee_change_applied_at IS NULL
+    </update>
+
+    <update id="markLeaveEffectiveWindow">
+        UPDATE leave_request_detail
+        SET effective_from = #{effectiveFrom}, effective_to = #{effectiveTo}
+        WHERE request_id = #{requestId} AND effective_from IS NULL
+    </update>
+
+    <resultMap id="LeaveStatusWindowMap" type="com.hrplatform.workflow.LeaveStatusWindow">
+        <constructor>
+            <arg column="request_id" javaType="java.lang.Long"/>
+            <arg column="employee_id" javaType="java.lang.Long"/>
+            <arg column="effective_from" javaType="java.time.LocalDate"/>
+            <arg column="effective_to" javaType="java.time.LocalDate"/>
+        </constructor>
+    </resultMap>
+
+    <select id="listLeaveStatusWindowsForSync" resultMap="LeaveStatusWindowMap">
+        SELECT l.request_id, r.employee_id, l.effective_from, l.effective_to
+        FROM leave_request_detail l
+        JOIN hr_request r ON r.id = l.request_id
+        WHERE r.status = 'APPROVED'
+          AND l.effective_from IS NOT NULL
+          AND l.effective_to IS NOT NULL
+        LIMIT #{limit}
+    </select>
+
+    <select id="countOtherActiveLeaveWindows" resultType="long">
+        SELECT COUNT(*)
+        FROM leave_request_detail l
+        JOIN hr_request r ON r.id = l.request_id
+        WHERE r.employee_id = #{employeeId}
+          AND r.status = 'APPROVED'
+          AND l.effective_from IS NOT NULL
+          AND l.effective_to IS NOT NULL
+          AND l.effective_from &lt;= #{today}
+          AND l.effective_to &gt;= #{today}
+          AND l.request_id &lt;&gt; #{excludeRequestId}
+    </select>
 </mapper>

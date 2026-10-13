@@ -20,4 +20,11 @@ class ArchiveAccessStateMachineTest {
         assertThatThrownBy(() -> ArchiveAccessStateMachine.use("IN_USE"))
                 .isInstanceOf(ArchiveAccessStateException.class);
     }
+
+    @Test
+    void rejectionIsTerminalAndOnlyAllowedBeforeAuthorization() {
+        assertThat(ArchiveAccessStateMachine.reject("PENDING_APPROVAL")).isEqualTo("REJECTED");
+        assertThatThrownBy(() -> ArchiveAccessStateMachine.reject("APPROVED"))
+                .isInstanceOf(ArchiveAccessStateException.class);
+    }
 }

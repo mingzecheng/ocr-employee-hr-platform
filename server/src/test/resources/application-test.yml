@@ -1,9 +1,17 @@
 spring:
   datasource:
-    url: jdbc:h2:mem:hr_platform_test;MODE=MySQL;DB_CLOSE_DELAY=-1
-    username: sa
-    password:
-    driver-class-name: org.h2.Driver
+    # Both master and replica point at the same in-memory H2 database in tests; the routing logic
+    # is still exercised (reads route to replica, writes to master) but data stays consistent.
+    master:
+      url: jdbc:h2:mem:hr_platform_test;MODE=MySQL;DB_CLOSE_DELAY=-1
+      username: sa
+      password:
+      driver-class-name: org.h2.Driver
+    replica:
+      url: jdbc:h2:mem:hr_platform_test;MODE=MySQL;DB_CLOSE_DELAY=-1
+      username: sa
+      password:
+      driver-class-name: org.h2.Driver
   flyway:
     enabled: false
   data:
@@ -11,6 +19,16 @@ spring:
       repositories:
         enabled: false
 
+hr:
+  archive-access:
+    expiry:
+      enabled: false
+  workflow:
+    employee-change-cron: "-"
+    leave-status-cron: "-"
+
 platform:
+  security:
+    live-jwt-validation: false
   jwt:
     secret: test-secret-key-test-secret-key-test-secret-key

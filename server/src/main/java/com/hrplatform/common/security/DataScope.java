@@ -9,7 +9,7 @@ public record DataScope(Type type, Long userId, Long employeeId, Long department
 
     public static DataScope fromClaims(Long userId, Long employeeId, Long departmentId, Set<String> roles) {
         Set<String> roleSet = roles == null ? Collections.emptySet() : new HashSet<>(roles);
-        if (roleSet.contains("SYSTEM_ADMIN") || roleSet.contains("HR_ADMIN")) {
+        if (roleSet.contains("HR_ADMIN")) {
             return new DataScope(Type.ALL, userId, employeeId, departmentId);
         }
         if (roleSet.contains("DEPT_MANAGER") && departmentId != null) {

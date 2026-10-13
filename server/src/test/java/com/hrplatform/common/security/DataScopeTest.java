@@ -8,11 +8,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class DataScopeTest {
     @Test
-    void systemAdminCanAccessEveryEmployee() {
+    void systemAdminDoesNotReceiveEmployeeRecordScopeByDefault() {
         DataScope scope = DataScope.fromClaims(1L, null, null, Set.of("SYSTEM_ADMIN"));
 
-        assertThat(scope.type()).isEqualTo(DataScope.Type.ALL);
-        assertThat(scope.canAccess(42L, 99L)).isTrue();
+        assertThat(scope.type()).isEqualTo(DataScope.Type.NONE);
+        assertThat(scope.canAccess(42L, 99L)).isFalse();
     }
 
     @Test
