@@ -13,7 +13,7 @@ export interface HttpError extends Error {
 }
 export interface Page<T> { items: T[]; total: number; page: number; pageSize: number }
 export interface AuthUser { id: number; username: string; employeeId?: number | null; departmentId?: number | null; roles: string[]; dataScope: string }
-export interface AuthResponse { accessToken: string; expiresAt: string; user: AuthUser }
+export interface AuthResponse { accessToken: string; expiresAt: string; refreshToken?: string; user: AuthUser }
 export interface RegisterInput { password: string; name: string; phone: string }
 export interface Employee { id: number; employeeNo: string; name: string; phone?: string; departmentId: number; positionId: number; status: string; hireDate?: string; leaveDate?: string; leaveStartDate?: string; leaveEndDate?: string }
 export interface EmployeeStatusHistory {
@@ -78,13 +78,81 @@ http.interceptors.request.use((config) => {
   return config
 })
 
-http.interceptors.response.use((response) => response, (error) => {
-  if (error.response?.status === 401) {
-    sessionStorage.removeItem('hr.accessToken')
-    sessionStorage.removeItem('hr.user')
+/** 登录态彻底失效后的跳转钩子，挂在对象上便于测试替换。 */
+export const authSession = {
+  redirectToLogin(): void {
+    if (typeof window === 'undefined' || !window.location) return
+    try {
+      sessionStorage.setItem('hr.portalReturnTo', window.location.href)
+      window.location.assign('/#/login')
+    } catch {
+      /* jsdom / 测试环境可能拦截真实跳转，忽略即可 */
+    }
+  },
+}
+
+function clearLocalSession(): void {
+  sessionStorage.removeItem('hr.accessToken')
+  sessionStorage.removeItem('hr.user')
+  localStorage.removeItem('hr.refreshToken')
+}
+
+interface RefreshResult { accessToken: string; refreshToken?: string }
+
+let refreshPromise: Promise<string | null> | null = null
+
+/**
+ * 用独立的 axios 实例刷新令牌，避免再次走进本响应拦截器造成递归。
+ * 并发的 401 会共享同一个刷新 Promise（单飞）。
+ */
+function refreshAccessToken(): Promise<string | null> {
+  if (refreshPromise) return refreshPromise
+  const refreshToken = localStorage.getItem('hr.refreshToken')
+  if (!refreshToken) return Promise.resolve(null)
+  refreshPromise = (async () => {
+    try {
+      const resp = await axios.post<ApiResponse<RefreshResult>>(
+        `${http.defaults.baseURL || ''}/auth/refresh`,
+        { refreshToken },
+        { timeout: http.defaults.timeout },
+      )
+      const body = resp.data
+      if (!body || body.code !== '0' || !body.data?.accessToken) return null
+      sessionStorage.setItem('hr.accessToken', body.data.accessToken)
+      if (body.data.refreshToken) localStorage.setItem('hr.refreshToken', body.data.refreshToken)
+      else localStorage.removeItem('hr.refreshToken')
+      return body.data.accessToken
+    } catch {
+      return null
+    } finally {
+      refreshPromise = null
+    }
+  })()
+  return refreshPromise
+}
+
+http.interceptors.response.use((response) => response, async (error) => {
+  const originalRequest = error.config as (typeof error.config & { _retried?: boolean }) | undefined
+  const status = error.response?.status as number | undefined
+  // 登录/注册接口自身的 401 属于账号密码错误，应由视图展示内联错误，不能触发静默刷新或跳登录。
+  const isAuthMutation = /\/auth\/(login|register)/.test(originalRequest?.url || '')
+
+  if (status === 401 && !isAuthMutation) {
+    if (originalRequest && !originalRequest._retried) {
+      const nextToken = await refreshAccessToken()
+      if (nextToken) {
+        originalRequest._retried = true
+        originalRequest.headers.Authorization = `Bearer ${nextToken}`
+        return http.request(originalRequest)
+      }
+    }
+    // refresh 也失败（或已重试过仍 401）：清掉本地登录态并跳登录页。
+    clearLocalSession()
+    authSession.redirectToLogin()
   }
+
   // 审批幂等命中（STATE_CONFLICT）：统一弹出友好提示，避免视图层展示裸 409。
-  const isConflict = error.response?.status === 409
+  const isConflict = status === 409
   if (isConflict) {
     ElMessage.warning('操作正在处理中，请勿重复提交')
   }
@@ -93,7 +161,7 @@ http.interceptors.response.use((response) => response, (error) => {
   const isTimeout = axiosError?.code === 'ECONNABORTED' || axiosError?.code === 'ETIMEDOUT'
   const normalized = new Error(payload?.message || error.message || '网络请求失败') as HttpError
   normalized.code = payload?.code || axiosError?.code
-  normalized.status = error.response?.status
+  normalized.status = status
   normalized.traceId = payload?.traceId && payload.traceId !== 'unknown'
     ? payload.traceId
     : axiosError?.response?.headers?.['x-trace-id']

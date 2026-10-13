@@ -32,7 +32,13 @@ describe('LoginView', () => {
     await wrapper.get('form').trigger('submit')
     await flushPromises()
 
-    expect(auth.login).toHaveBeenCalledWith('local-account', 'local-password')
+    expect(auth.login).toHaveBeenCalledWith('local-account', 'local-password', true)
     expect(wrapper.get('[role="alert"]').text()).toContain('无法连接人事服务')
+  })
+
+  it('defaults the 7-day remember-me checkbox to checked', () => {
+    const wrapper = mount(LoginView, { global: { plugins: [ElementPlus, router] } })
+    const checkbox = wrapper.get('[data-test="remember-me"] input[type="checkbox"]')
+    expect((checkbox.element as HTMLInputElement).checked).toBe(true)
   })
 })

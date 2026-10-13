@@ -9,6 +9,7 @@ import { requiredText } from '../utils/live-validation'
 const auth = useAuthStore()
 const router = useRouter()
 const form = reactive({ username: '', password: '' })
+const rememberMe = ref(true)
 const loading = ref(false)
 const errorMessage = ref('')
 const errorDetail = ref('')
@@ -39,7 +40,7 @@ async function submit() {
   }
   loading.value = true
   try {
-    await auth.login(form.username, form.password)
+    await auth.login(form.username, form.password, rememberMe.value)
     const returnUrl = authorizedReturnUrl(auth.roles)
     const portals = availablePortals(auth.roles)
     if (returnUrl) window.location.assign(returnUrl)
@@ -76,6 +77,9 @@ async function submit() {
             </el-form-item>
             <el-form-item label="密码" prop="password" :rules="[requiredText('请输入密码。')]">
               <el-input v-model="form.password" type="password" autocomplete="current-password" size="large" show-password placeholder="输入密码" />
+            </el-form-item>
+            <el-form-item class="login-remember">
+              <el-checkbox v-model="rememberMe" data-test="remember-me">7天免登录</el-checkbox>
             </el-form-item>
             <el-button class="login-button" type="primary" size="large" native-type="submit" :loading="loading">
               登录
