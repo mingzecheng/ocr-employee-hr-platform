@@ -17,15 +17,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final SysUserMapper userMapper;
     private final boolean liveValidation;
+    private final TokenBlacklistService blacklist;
 
     public JwtAuthenticationFilter(JwtService jwtService) {
-        this(jwtService, null, false);
+        this(jwtService, null, false, null);
     }
 
     public JwtAuthenticationFilter(JwtService jwtService, SysUserMapper userMapper, boolean liveValidation) {
+        this(jwtService, userMapper, liveValidation, null);
+    }
+
+    public JwtAuthenticationFilter(JwtService jwtService, SysUserMapper userMapper, boolean liveValidation,
+                                  TokenBlacklistService blacklist) {
         this.jwtService = jwtService;
         this.userMapper = userMapper;
         this.liveValidation = liveValidation;
+        this.blacklist = blacklist;
     }
 
     @Override
@@ -34,11 +41,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String header = request.getHeader("Authorization");
         if (header != null && header.startsWith("Bearer ")) {
             try {
-                JwtPrincipal principal = resolvePrincipal(header.substring(7));
+                String token = header.substring(7);
+                // 登出黑名单检查：token 在黑名单中则返回 401 并短路。
+                if (blacklist != null && blacklist.isBlacklisted(token)) {
+                    SecurityContextHolder.clearContext();
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    return;
+                }
+                JwtPrincipal principal = resolvePrincipal(token);
                 var authorities = principal.roles().stream()
                         .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
                         .toList();
-                var authentication = new UsernamePasswordAuthenticationToken(principal, header.substring(7), authorities);
+                var authentication = new UsernamePasswordAuthenticationToken(principal, token, authorities);
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             } catch (JwtAuthenticationException ignored) {
                 SecurityContextHolder.clearContext();

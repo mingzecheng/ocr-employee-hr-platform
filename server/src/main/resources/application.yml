@@ -13,7 +13,7 @@ spring:
       password: ${MYSQL_PASSWORD:change-me-application-password}
       driver-class-name: com.mysql.cj.jdbc.Driver
     replica:
-      url: ${MYSQL_REPLICA_URL:${MYSQL_URL:jdbc:mysql://127.0.0.1:3306/hr_platform?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}}
+      url: ${MYSQL_REPLICA_URL:jdbc:mysql://127.0.0.1:13307/hr_platform?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
       username: ${MYSQL_REPLICA_USERNAME:${MYSQL_USERNAME:hr}}
       password: ${MYSQL_REPLICA_PASSWORD:${MYSQL_PASSWORD:change-me-application-password}}
       driver-class-name: com.mysql.cj.jdbc.Driver

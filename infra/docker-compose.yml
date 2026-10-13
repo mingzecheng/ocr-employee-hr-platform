@@ -2,6 +2,11 @@ services:
   mysql:
     image: mysql:8.0.39
     restart: unless-stopped
+    # Primary: enable row-based binlog so the replica can stream changes.
+    command:
+      - --server-id=1
+      - --log-bin=binlog
+      - --binlog-format=ROW
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-change-me-root-password}
       MYSQL_DATABASE: hr_platform
@@ -11,6 +16,35 @@ services:
       - "127.0.0.1:${MYSQL_PORT:-3306}:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+      # First-init scripts: creates the 'repl' replication account (only runs on fresh volume).
+      - ./mysql/primary:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$${MYSQL_ROOT_PASSWORD}\" --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  # Read replica. On first start it waits for the primary, fetches the current binlog
+  # coordinates, and runs CHANGE REPLICATION SOURCE TO + START REPLICA automatically.
+  # Requires a fresh mysql_replica_data volume (init scripts only run on first boot).
+  mysql-replica:
+    image: mysql:8.0.39
+    restart: unless-stopped
+    command:
+      - --server-id=2
+      - --read-only=ON
+      - --log-bin=binlog
+      - --binlog-format=ROW
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-change-me-root-password}
+    ports:
+      - "127.0.0.1:${MYSQL_REPLICA_PORT:-13307}:3306"
+    volumes:
+      - mysql_replica_data:/var/lib/mysql
+      - ./mysql/replica:/docker-entrypoint-initdb.d
+    depends_on:
+      mysql:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$${MYSQL_ROOT_PASSWORD}\" --silent"]
       interval: 5s
@@ -51,5 +85,6 @@ services:
 
 volumes:
   mysql_data:
+  mysql_replica_data:
   redis_data:
   minio_data:

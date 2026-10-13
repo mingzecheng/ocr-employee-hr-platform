@@ -12,6 +12,7 @@ import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 public class JwtService {
     private final SecretKey signingKey;
@@ -28,6 +29,7 @@ public class JwtService {
     public String issue(JwtPrincipal principal) {
         Instant issuedAt = Instant.now();
         return Jwts.builder()
+                .id(UUID.randomUUID().toString())
                 .subject(String.valueOf(principal.userId()))
                 .claim("employeeId", principal.employeeId())
                 .claim("departmentId", principal.departmentId())
@@ -44,13 +46,37 @@ public class JwtService {
 
     public JwtPrincipal parse(String token) {
         try {
-            Claims claims = Jwts.parser().verifyWith(signingKey).build().parseSignedClaims(token).getPayload();
+            Claims claims = parseClaims(token);
             return new JwtPrincipal(
                     Long.valueOf(claims.getSubject()),
                     numberClaim(claims, "employeeId"),
                     numberClaim(claims, "departmentId"),
                     rolesClaim(claims.get("roles"))
             );
+        } catch (JwtAuthenticationException rethrow) {
+            throw rethrow;
+        } catch (Exception exception) {
+            throw new JwtAuthenticationException("Invalid JWT token", exception);
+        }
+    }
+
+    /** 提取 token 的 jti（JWT ID），用于登出黑名单。 */
+    public String extractJti(String token) {
+        return parseClaims(token).getId();
+    }
+
+    /** 计算 token 剩余有效期（秒级精度，已过期返回 0）。 */
+    public Duration remainingTtl(String token) {
+        Claims claims = parseClaims(token);
+        long expMs = claims.getExpiration().getTime();
+        long nowMs = System.currentTimeMillis();
+        long seconds = Math.max(0, (expMs - nowMs) / 1000);
+        return Duration.ofSeconds(seconds);
+    }
+
+    private Claims parseClaims(String token) {
+        try {
+            return Jwts.parser().verifyWith(signingKey).build().parseSignedClaims(token).getPayload();
         } catch (Exception exception) {
             throw new JwtAuthenticationException("Invalid JWT token", exception);
         }

@@ -34,6 +34,7 @@ public class SecurityConfiguration {
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, JwtService jwtService, SysUserMapper userMapper,
+                                            TokenBlacklistService tokenBlacklist,
                                             @Value("${platform.security.live-jwt-validation:true}") boolean liveValidation)
             throws Exception {
         return http
@@ -44,7 +45,7 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.POST, "/api/auth/register").permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(new TraceIdFilter(), UsernamePasswordAuthenticationFilter.class)
-                .addFilterBefore(new JwtAuthenticationFilter(jwtService, userMapper, liveValidation),
+                .addFilterBefore(new JwtAuthenticationFilter(jwtService, userMapper, liveValidation, tokenBlacklist),
                         UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
