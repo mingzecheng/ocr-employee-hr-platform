@@ -169,4 +169,70 @@ describe('AuditLogView', () => {
     expect(errorMock).toHaveBeenCalledWith(expect.stringContaining('没有权限查看该日志'))
     wrapper.unmount()
   })
+
+  it('hides the change-detail section for read-only logs when hasChanges=false', async () => {
+    requestMock.mockImplementation(async (config: { url?: string }) => {
+      if (config.url === '/operation-logs') {
+        return {
+          items: [{ id: 10, operatorId: 5, operatorName: '王五', action: 'LOGIN_SUCCESS', objectType: 'AUTH', result: 'SUCCESS', clientIpMasked: '192.168.x.x', createdAt: '2026-10-12T11:00:00' }],
+          total: 1, page: 1, pageSize: 20,
+        } as never
+      }
+      if (config.url === '/operation-logs/10') {
+        return {
+          id: 10, operatorId: 5, operatorName: '王五', action: 'LOGIN_SUCCESS', objectType: 'AUTH', objectId: null,
+          result: 'SUCCESS', createdAt: '2026-10-12T11:00:00', traceId: 'trace-login-10',
+          clientIp: '203.0.113.9', userAgent: 'Mozilla/5.0', requestMethod: 'POST', requestUri: '/api/auth/login', sessionId: 'sess-10',
+          beforeSummary: null, afterSummary: null, hasChanges: false,
+        } as never
+      }
+      return undefined as never
+    })
+
+    const wrapper = mount(AuditLogView, { attachTo: document.body, global: { plugins: [ElementPlus] } })
+    await flushPromises()
+    await wrapper.find('button[title="查看详情"]').trigger('click')
+    await flushPromises()
+
+    const drawer = document.querySelector('.el-drawer')?.textContent || ''
+    // 基本信息与风控指纹仍在
+    expect(drawer).toContain('基本信息')
+    expect(drawer).toContain('风控指纹')
+    // 读操作无变更：整个“变更详情”section 不渲染（页面头部介绍含“变更前后”，故限定抽屉内断言）
+    expect(drawer).not.toContain('变更详情')
+    expect(drawer).not.toContain('变更前 before')
+    expect(drawer).not.toContain('变更后 after')
+    wrapper.unmount()
+  })
+
+  it('shows the change-detail section for write logs when hasChanges=true', async () => {
+    requestMock.mockImplementation(async (config: { url?: string }) => {
+      if (config.url === '/operation-logs') {
+        return {
+          items: [{ id: 11, operatorId: 3, operatorName: '张三', action: 'EMPLOYEE_UPDATED', objectType: 'EMPLOYEE', objectId: 21, result: 'SUCCESS', clientIpMasked: '192.168.x.x', createdAt: '2026-10-12T11:10:00' }],
+          total: 1, page: 1, pageSize: 20,
+        } as never
+      }
+      if (config.url === '/operation-logs/11') {
+        return {
+          id: 11, operatorId: 3, operatorName: '张三', action: 'EMPLOYEE_UPDATED', objectType: 'EMPLOYEE', objectId: 21,
+          result: 'SUCCESS', createdAt: '2026-10-12T11:10:00', traceId: 'trace-upd-11',
+          clientIp: '203.0.113.10', userAgent: 'Mozilla/5.0', requestMethod: 'PUT', requestUri: '/api/employees/21', sessionId: 'sess-11',
+          beforeSummary: '部门=销售部', afterSummary: '部门=市场部', hasChanges: true,
+        } as never
+      }
+      return undefined as never
+    })
+
+    const wrapper = mount(AuditLogView, { attachTo: document.body, global: { plugins: [ElementPlus] } })
+    await flushPromises()
+    await wrapper.find('button[title="查看详情"]').trigger('click')
+    await flushPromises()
+
+    const body = document.body.textContent || ''
+    expect(body).toContain('变更详情')
+    expect(body).toContain('部门=销售部')
+    expect(body).toContain('部门=市场部')
+    wrapper.unmount()
+  })
 })

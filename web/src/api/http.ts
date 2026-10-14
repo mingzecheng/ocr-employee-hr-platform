@@ -92,6 +92,12 @@ export interface AuditLogDetail {
   sessionId?: string | null
   beforeSummary?: string | null
   afterSummary?: string | null
+  /**
+   * 后端根据 beforeSummary/afterSummary 是否为空计算：读操作（LOGIN/LOGOUT/QUERY 等）
+   * 无变更内容，前端应据此隐藏“变更详情”section。缺省（undefined）视为 true，
+   * 保持对旧接口/旧测试的向后兼容。
+   */
+  hasChanges?: boolean
 }
 export interface InventoryTask { id: number; taskNo: string; status: string; initiatorId?: number }
 export interface InventoryItem {

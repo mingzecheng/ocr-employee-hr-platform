@@ -125,7 +125,7 @@ onMounted(load)
           </div>
         </section>
 
-        <section class="audit-section">
+        <section v-if="detail.hasChanges !== false" class="audit-section">
           <h3 class="audit-section-title">变更详情</h3>
           <div class="audit-diff">
             <div class="audit-diff-col">

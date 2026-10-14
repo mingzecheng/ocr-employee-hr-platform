@@ -96,4 +96,42 @@ describe('ServerMonitorView', () => {
     await flushPromises()
     expect(errorMock).toHaveBeenCalledWith(expect.stringContaining('没有权限查看监控'))
   })
+
+  it('renders chart panels with byte- and percent-formatted captions', async () => {
+    const wrapper = mount(ServerMonitorView, { attachTo: document.body, global: { plugins: [ElementPlus] } })
+    await flushPromises()
+
+    const text = wrapper.text()
+    expect(text).toContain('JVM 堆内存分布')
+    expect(text).toContain('CPU 使用率趋势')
+    expect(text).toContain('物理内存使用率')
+    expect(text).toContain('Redis 命中分布')
+    // 268435456 B = 256.0 MB；内存使用率 50% 保留 1 位
+    expect(text).toContain('256.0 MB')
+    expect(text).toContain('50.0%')
+    wrapper.unmount()
+  })
+
+  it('accumulates cpu samples once per refresh and shows the sample count', async () => {
+    vi.useFakeTimers()
+    const wrapper = mount(ServerMonitorView, { attachTo: document.body, global: { plugins: [ElementPlus] } })
+    await flushPromises()
+    expect(wrapper.text()).toContain('最近 1 个采样点')
+
+    await vi.advanceTimersByTimeAsync(5000)
+    await flushPromises()
+    await vi.advanceTimersByTimeAsync(5000)
+    await flushPromises()
+    expect(wrapper.text()).toContain('最近 3 个采样点')
+    wrapper.unmount()
+  })
+
+  it('hides the redis chart card when redis is unavailable', async () => {
+    requestMock.mockResolvedValue({ ...baseMonitor, redis: null } as never)
+    const wrapper = mount(ServerMonitorView, { attachTo: document.body, global: { plugins: [ElementPlus] } })
+    await flushPromises()
+    expect(wrapper.text()).not.toContain('Redis 命中分布')
+    expect(wrapper.text()).toContain('Redis 未连接')
+    wrapper.unmount()
+  })
 })
