@@ -65,10 +65,11 @@ public class AuditController {
             throw new OperationLogNotFoundException(id);
         }
         String operatorName = resolveOperatorName(record.operatorId());
+        boolean hasChanges = record.beforeSummary() != null || record.afterSummary() != null;
         OperationLogDetail detail = new OperationLogDetail(record.id(), record.operatorId(), operatorName,
                 record.action(), record.objectType(), record.objectId(), record.result(), record.createdAt(),
                 record.traceId(), record.clientIp(), record.userAgent(), record.requestMethod(),
-                record.requestUri(), record.sessionId(), record.beforeSummary(), record.afterSummary());
+                record.requestUri(), record.sessionId(), record.beforeSummary(), record.afterSummary(), hasChanges);
         return ApiResponse.success(detail, "unknown");
     }
 

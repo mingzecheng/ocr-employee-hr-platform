@@ -13,19 +13,25 @@ import java.util.Map;
 
 /**
  * 在线用户管理。仅 {@code SYSTEM_ADMIN} 可访问。
+ *
+ * <p>列表接口在角色门控之上，再要求"在线用户"模块权限。
  */
 @RestController
 @RequestMapping("/api/admin/online-users")
 public class AdminOnlineUserController {
     private final OnlineUserService onlineUserService;
+    private final RolePermissionService rolePermissionService;
 
-    public AdminOnlineUserController(OnlineUserService onlineUserService) {
+    public AdminOnlineUserController(OnlineUserService onlineUserService,
+                                     RolePermissionService rolePermissionService) {
         this.onlineUserService = onlineUserService;
+        this.rolePermissionService = rolePermissionService;
     }
 
     @GetMapping
     @PreAuthorize("hasRole('SYSTEM_ADMIN')")
     public ApiResponse<List<OnlineUserRow>> list() {
+        rolePermissionService.requireModule(RolePermissionService.MODULE_ONLINE_USERS);
         return ApiResponse.success(onlineUserService.listOnlineUsers(), "unknown");
     }
 

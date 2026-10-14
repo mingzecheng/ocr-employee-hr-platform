@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hrplatform.admin.RolePermissionMapper">
+
+    <resultMap id="RowMap" type="com.hrplatform.admin.RolePermissionRow">
+        <constructor>
+            <arg column="role_code" javaType="java.lang.String"/>
+            <arg column="module_code" javaType="java.lang.String"/>
+        </constructor>
+    </resultMap>
+
+    <select id="countRolePermissions" resultType="long">
+        SELECT COUNT(*) FROM sys_role_permission
+    </select>
+
+    <select id="findRoleIdByCode" resultType="java.lang.Long">
+        SELECT id FROM sys_role WHERE code = #{roleCode}
+    </select>
+
+    <select id="findPermissionIdByCode" resultType="java.lang.Long">
+        SELECT id FROM sys_permission WHERE code = #{moduleCode}
+    </select>
+
+    <insert id="insertPermission">
+        INSERT INTO sys_permission (code, name) VALUES (#{moduleCode}, #{moduleCode})
+    </insert>
+
+    <insert id="insertRolePermission">
+        INSERT INTO sys_role_permission (role_id, permission_id) VALUES (#{roleId}, #{permissionId})
+    </insert>
+
+    <delete id="deleteRolePermission">
+        DELETE FROM sys_role_permission WHERE role_id = #{roleId} AND permission_id = #{permissionId}
+    </delete>
+
+    <select id="hasPermission" resultType="boolean">
+        SELECT COUNT(*)
+        FROM sys_role_permission rp
+        JOIN sys_role r ON r.id = rp.role_id
+        JOIN sys_permission p ON p.id = rp.permission_id
+        WHERE r.code = #{roleCode} AND p.code = #{moduleCode}
+    </select>
+
+    <select id="findGrantedPermissions" resultMap="RowMap">
+        SELECT r.code AS role_code, p.code AS module_code
+        FROM sys_role_permission rp
+        JOIN sys_role r ON r.id = rp.role_id
+        JOIN sys_permission p ON p.id = rp.permission_id
+    </select>
+
+</mapper>

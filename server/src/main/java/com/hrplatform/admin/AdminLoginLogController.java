@@ -17,28 +17,36 @@ import java.util.List;
 /**
  * 登录日志：从 operation_log 中筛选 LOGIN / LOGOUT / REFRESH，与通用审计日志分开。
  * 仅 {@code SYSTEM_ADMIN} 可访问，保留 IP / UserAgent 原文。
+ *
+ * <p>在角色门控之上，再要求"登录日志"模块权限。
  */
 @RestController
 @RequestMapping("/api/admin/login-logs")
 public class AdminLoginLogController {
     private final OperationLogMapper operationLogMapper;
     private final SysUserMapper userMapper;
+    private final RolePermissionService rolePermissionService;
 
-    /** 测试兼容构造：不解析 operatorName。 */
+    /** 测试兼容构造：不解析 operatorName，也不挂模块守卫。 */
     public AdminLoginLogController(OperationLogMapper operationLogMapper) {
-        this(operationLogMapper, null);
+        this(operationLogMapper, null, null);
     }
 
     @Autowired
-    public AdminLoginLogController(OperationLogMapper operationLogMapper, SysUserMapper userMapper) {
+    public AdminLoginLogController(OperationLogMapper operationLogMapper, SysUserMapper userMapper,
+                                   RolePermissionService rolePermissionService) {
         this.operationLogMapper = operationLogMapper;
         this.userMapper = userMapper;
+        this.rolePermissionService = rolePermissionService;
     }
 
     @GetMapping
     @PreAuthorize("hasRole('SYSTEM_ADMIN')")
     public ApiResponse<LoginLogPage> list(@RequestParam(defaultValue = "1") int page,
                                          @RequestParam(defaultValue = "20") int size) {
+        if (rolePermissionService != null) {
+            rolePermissionService.requireModule(RolePermissionService.MODULE_LOGIN_LOGS);
+        }
         int safePage = Math.max(1, page);
         int safeSize = Math.min(100, Math.max(1, size));
         List<LoginLogItem> items = operationLogMapper
